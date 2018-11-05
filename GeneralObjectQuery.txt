@@ -1,0 +1,12 @@
+select * from sys.objects where object_id in (select object_id from sys.columns where name like '%isin%')
+
+Password15!@
+
+JMAYHE2@
+
+Sam@2018
+
+select object_id,name from sys.objects where name like '%type%' order by name
+
+
+VIVA-CORP.88409
