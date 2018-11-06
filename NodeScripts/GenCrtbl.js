@@ -1,6 +1,6 @@
 var sprintf = require("sprintf-js");
 var lineReader = require('readline').createInterface({
-    input: require('fs').createReadStream('./crtblTest02.txt', { autoClose: true })
+    input: require('fs').createReadStream('c:/temp/crtblTest02.txt', { autoClose: true })
 });
 var isNewTable = true;
 var isEndOfTable = false;
