@@ -16,7 +16,7 @@ lineReader.on('line', function (line) {
     var arr = line.split("\t");
 
     if (arr[1] == "DataType") {
-        tableName = arr[0];
+        tableName = arr[0].replace("Table", "").replace("table","").trim();
         console.log(sprintf.sprintf("IF Object_id('[dbo].%s', 'U') IS NOT NULL ", tableName)); 
         console.log(sprintf.sprintf("\tDROP TABLE [dbo].%s", tableName));
         console.log(sprintf.sprintf("go"));	
@@ -33,12 +33,13 @@ lineReader.on('line', function (line) {
                 console.log(sprintf.sprintf("  CONSTRAINT [PK_%s]", tableName)); 
                 console.log(sprintf.sprintf("\tPRIMARY KEY CLUSTERED ( %s ASC )", pkArray.join(", ")));	
             }
-            console.log(')\n', 'go\n');
+            console.log(')\rgo\n');
             isEndOfTable = true;
         }
     }
     else {
-        console.log(sprintf.sprintf("%1s %-36s %-20s %s", (isNewTable)?" ":",", arr[0] ,arr[1], ((arr[2]=="Y")?"":"Not Null")));
+        var defaultValue = ( arr[3] == undefined || arr[3]=="")?"":sprintf.sprintf("\tdefault %s",arr[3]);
+        console.log(sprintf.sprintf("%1s %-36s %-20s %s%s", (isNewTable)?" ":",", arr[0] ,arr[1], (arr[2]=="Y")?"":"Not Null", defaultValue));
         templateObj.GenColCheck(tableName, arr[4]);
         isNewTable = false;
         if(arr[2]=="PK")
@@ -51,26 +52,28 @@ lineReader.on('line', function (line) {
 
 const templateObj = {
     GenColCheck(tableName, note) {
-        const regexContactMethodTypeId = new RegExp('1 = Phone','g');
-        const regexAssociationType = new RegExp('4 = Financial Adviser','g');
-        const regexCompanyType = new RegExp('1 - Employer','g');
-
-        if( regexContactMethodTypeId.test(note))
+        if((new RegExp('1 = Phone','g')).test(note))
         {
             console.log(sprintf.sprintf("  CONSTRAINT [CHK_%s_ContactMethodTypeId]", tableName)); 
             console.log(sprintf.sprintf("\tCHECK ( ContactMethodTypeId in (1,2,3) ) -- 1 = Phone, 2 = Email, 3 = Post"));	
         }
 
-        if( regexAssociationType.test(note))
+        if((new RegExp('4 = Financial Adviser','g')).test(note))
         {
             console.log(sprintf.sprintf("  CONSTRAINT [CHK_%s_AssociationType]", tableName)); 
             console.log(sprintf.sprintf("\tCHECK ( AssociationType in (4,7,8) ) -- 4 = Financial Adviser, 7 = Primary Contact, 8 = Secondary Contact"));	
         }
 
-        if( regexCompanyType.test(note))
+        if((new RegExp('1 - Employer','g')).test(note))
         {
             console.log(sprintf.sprintf("  CONSTRAINT [CHK_%s_CompanyType]", tableName)); 
             console.log(sprintf.sprintf("\tCHECK ( CompanyType in (1,2,3) ) -- 1 - Employer, 2 - Financial Planning, 3 - Investment Advice"));	
+        }
+
+        if((new RegExp('1 = Lost','g') ).test(note))
+        {
+            console.log(sprintf.sprintf("  CONSTRAINT [CHK_%s_LostStatusId]", tableName)); 
+            console.log(sprintf.sprintf("\tCHECK ( LostStatusId in (1,2,3,4,5) ) -- 1 = Lost, 2 = Inactive, 3 = Transferred, 4 = Found, 5 = Error"));	
         }
     }
 }
