@@ -43,10 +43,7 @@ lineReader.on('line', function (line) {
         templateObj.GenColCheck(tableName, arr[4]);
         isNewTable = false;
         if(arr[2]=="PK")
-        {
             pkArray.push(arr[0]);
-
-        }
     }
 });
 
