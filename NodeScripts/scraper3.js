@@ -12,9 +12,6 @@ const browser = await puppeteer.launch();
 //... do some stuff
   await browser.close();
 
-  //console.log($('.price-dollars', html).length);
   console.log($('span.price-dollars', html).text());
   console.log($('span.price-cents', html).text());
-
-
 })();
