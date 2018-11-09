@@ -33,9 +33,9 @@ lineReader.on('line', function (line) {
         if (!isEndOfTable) {
             if (pkArray.length > 0) templateObj.GenPK(tableName);
             console.log(')\rgo');
+            
             if (index_1_Array.length > 0) templateObj.GenIndex_1(tableName);
             if (index_2_Array.length > 0) templateObj.GenIndex_2(tableName);
-
             console.log('');
             isEndOfTable = true;
         }
