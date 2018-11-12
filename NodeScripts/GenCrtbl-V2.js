@@ -2,10 +2,10 @@
 //Usage: cat './crtblTest02.txt' |  node GenCrtbl.js > output.sql
 
 const sprintf = require("sprintf-js");
-const lineReader = require('readline').createInterface({
-    // input: require('fs').createReadStream('./crtblTest02.txt', {autoClose: true })
-    input: process.stdin
-});
+// const lineReader = require('readline').createInterface({
+//     // input: require('fs').createReadStream('./crtblTest02.txt', {autoClose: true })
+//     input: process.stdin
+// });
 
 var isNewTable = true;
 var isEndOfTable = false;
@@ -14,7 +14,16 @@ var pkArray = [];
 var index_1_Array = [];
 var index_2_Array = [];
 
-lineReader.on('line', function (line) {
+let rowDelimiter = Math.random().toString(26).slice(2);
+let XLSX = require('xlsx')
+let workbook = XLSX.readFile('../EntityTest.xlsx');
+let sheet_name_list = workbook.SheetNames;
+const xlData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheet_name_list[0]], { FS: "\t", RS: rowDelimiter });
+
+xlData.split(rowDelimiter).map((li) => {
+    let aStr = li.split('\t'); 
+    return {name : aStr[0], dataType : aStr[1]} 
+}).forEach( (line) => {
     var arr = line.split("\t");
 
     if (arr[1] == "DataType" || arr[1] == "Data Type") {
@@ -53,7 +62,49 @@ lineReader.on('line', function (line) {
         if (keyString.includes("Index_1")) index_1_Array.push(arr[0]);
         if (keyString.includes("Index_2")) index_2_Array.push(arr[0]);
     }
-});
+}
+);
+
+// lineReader.on('line', function (line) {
+//     var arr = line.split("\t");
+
+//     if (arr[1] == "DataType" || arr[1] == "Data Type") {
+//         tableName = arr[0].replace("Table", "").replace("table", "").trim();
+//         console.log(sprintf.sprintf("IF Object_id('[dbo].%s', 'U') IS NOT NULL ", tableName));
+//         console.log(sprintf.sprintf("\tDROP TABLE [dbo].%s", tableName));
+//         console.log(sprintf.sprintf("go"));
+//         console.log('Create Table ', tableName, ' (');
+//         isNewTable = true;
+//         isEndOfTable = false;
+//         pkArray = [];
+//         index_1_Array = [];
+//         index_2_Array = [];
+//     }
+//     else if (arr[1] == undefined || arr[1] == "" ) {
+//         if (!isEndOfTable) {
+//             if (pkArray.length > 0) templateObj.GenPK(tableName);
+//             console.log(')\rgo');
+            
+//             if (index_1_Array.length > 0) templateObj.GenIndex_1(tableName);
+//             if (index_2_Array.length > 0) templateObj.GenIndex_2(tableName);
+//             console.log('');
+//             isEndOfTable = true;
+//         }
+//     }
+//     else {
+//         var defaultValue = (arr[3] == undefined || arr[3] == "") ? "" : sprintf.sprintf("\tdefault %s", arr[3]);
+//         var dataType = arr[1].replace(/"/g, '');
+//         console.log(sprintf.sprintf("%1s %-36s %-20s %s%s",
+//             (isNewTable) ? " " : ",", arr[0], dataType, (arr[2] == "Y") ? "" : "Not Null", defaultValue));
+//         templateObj.GenColCheck(tableName, arr[4]);
+//         isNewTable = false;
+//         const keyString = (arr[2] == "Y") ? [] : arr[2].replace(/"/g, '').split(",");
+
+//         if (keyString.includes("PK")) pkArray.push(arr[0]);
+//         if (keyString.includes("Index_1")) index_1_Array.push(arr[0]);
+//         if (keyString.includes("Index_2")) index_2_Array.push(arr[0]);
+//     }
+// });
 
 const templateObj = {
     GenColCheck(tableName, note) {
