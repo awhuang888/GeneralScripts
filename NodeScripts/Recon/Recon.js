@@ -1,13 +1,13 @@
-const sql = require('mssql');
+const sql = require('mssql/msnodesqlv8');
 const fs = require('fs');
+const dbConfig = require('./recon-config.json');
 
-const sqlConfig = {
-    server: 'db.recreo.io',
-    database: 'OneTrust',
-    user: 'sa',
-    password: 'R3cr30Database!',
-    port: 1433
-};
+const outputDbConfig = dbConfig.output;
+const inputDbConfig = dbConfig.input;
+//console.log(dbConfig.input);
+
+
+
 // const comm = 'select top 2 * from LegalEntity';
 const comm = `select top 2 * from LegalEntity le 
             join LegalEntityType let 
@@ -15,27 +15,33 @@ const comm = `select top 2 * from LegalEntity le
 
 //const xlCsv = ReadXlsxToCsv();
 
-console.log(ReadXlsxDesign());
+//console.log(ReadXlsxDesign());
+
+//console.log(showColumnArray(comm));
+showColumnArray(comm);
+
 
 //CreateView(comm);
 
 //RunSql(comm);
-async function CreateView(comm) {
+async function showColumnArray(comm) {
     let tableAlias = GetTableArray(comm);
     //console.log(tableAlias);
     let columnArray = await GetColumnArray(tableAlias);
-    console.log(columnArray);
-    // let columnArray = await RunSql(comm);
-    // console.log(columnArray);
+    //console.log(columnArray);
 
-    // rule to pick up column source:
-    // 1: from "SourceFrom" column
-    // 2: If just one table has the column name, choose this table as source
-    // 3: If more than one table have the same column name, choose the first table in array as source
-    // 4: If no column name matched, but concat "Id" can match && Datatype is int, then restart from 2.
-    // 5: put question mark in output.
-    ReadXlsxDesign().forEach(
-    );
+
+    // let mainTable = await GetViewMainTable(comm);
+    // console.log( mainTable);
+
+    let viewsDef = await getViewsDefinition();
+    //console.log( viewsDef);
+
+    viewsDef.forEach( v => {
+        console.log(v.name, GetViewMainTable(v.definition));
+
+    });
+
 }
 
 
@@ -48,13 +54,13 @@ async function GetColumnArray(tables) {
 
     try {
         console.log("sql connecting......")
-        let pool = await sql.connect(sqlConfig)
+        let pool = await sql.connect(outputDbConfig)
         let result = await pool.request().query(command);
 
         result.recordset.forEach((r) => colArray.push({ tableName: r.tablename, columnName: r.columnname }));
 
         await sql.close();
-        console.log(columnArray);
+        //console.log(columnArray);
     } catch (err) {
         console.log(err);
     }
@@ -76,13 +82,34 @@ function GetTableArray(comm) {
         tempArray = tempArray.slice(ind + 3);
         f = tempArray.find(a => a.toUpperCase() == 'FROM' || a.toUpperCase() == 'JOIN');
     }
-    return tableArray
+    return tableArray;
+}
+
+function GetViewMainTable(comm) {
+    const sqlArray = comm.split(/\s+/);
+    let f = sqlArray.find(a => a.toUpperCase() == 'FROM');
+    let tempArray = sqlArray;
+    let tableArray = [];
+
+    while (f) {
+        const ind = sqlArray.indexOf(f);
+        const name = sqlArray[ind + 1];
+        const alias = sqlArray[ind + 2];
+        tableArray.push({ name, alias });
+        tempArray = tempArray.slice(ind + 3);
+        f = tempArray.find(a => a.toUpperCase() == 'FROM');
+    }
+
+    const deduped = [...new Set(tableArray)]; 
+    let viewName = deduped[0].name;
+    if (deduped.length > 1) console.log(`-------------- Error -------view name ${comm} `);
+    return deduped[0].name;
 }
 
 async function RunSql(command) {
     try {
         console.log("sql connecting......")
-        let pool = await sql.connect(sqlConfig)
+        let pool = await sql.connect(outputDbConfig)
         let result = await pool.request().query(command);
         const allEqual = arr => arr.every(v => v === arr[0]);
 
@@ -118,5 +145,33 @@ function ReadXlsxDesign() {
         return {name : aStr[0], dataType : aStr[1]} 
     });
     return xlDesign;
+}
+
+
+async function getViewsDefinition() {
+    const command = `
+    select o.name, definition
+    from sys.objects     o
+    join sys.sql_modules m on m.object_id = o.object_id
+    where  o.type = 'V' and o.name not like 'vw[_]%' order by o.name
+    `;
+    let viewDef = []
+    try {
+        console.log("sql connecting......")
+        let pool = await sql.connect(outputDbConfig)
+        let result = await pool.request().query(command);
+        const allEqual = arr => arr.every(v => v === arr[0]);
+
+        result.recordset.forEach((r) => {
+            viewDef.push({ name: r.name, definition: r.definition});
+        }
+        );
+
+        await sql.close();
+    } catch (err) {
+        console.log(err);
+    }
+
+    return viewDef;
 }
 
