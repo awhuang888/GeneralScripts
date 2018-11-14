@@ -1,0 +1,10 @@
+#View Reconciliation Definition
+vMember:
+    input:
+      - MemberExtract
+vAccount:
+    input:
+      - AccountExtract
+      - other
+    filter: dsfafdafda
+            asdfafdas

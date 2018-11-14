@@ -1,0 +1,19 @@
+
+input:
+    server: localhost
+    database: Recreo_Extracts
+    driver: msnodesqlv8
+    options: 
+        trustedConnection: true
+output:
+    server: localhost
+    database: OneTrust
+    driver: msnodesqlv8
+    options: 
+        trustedConnection: true        
+# output:
+#     server: db.recreo.io,
+#     database: OneTrust,
+#     user: sa,
+#     password: R3cr30Database!,
+#     port: 1433
