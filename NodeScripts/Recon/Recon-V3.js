@@ -9,85 +9,99 @@ const outputDbConfig = dbConfig.output;
 const inputDbConfig = dbConfig.input;
 const reconConfig = yaml.safeLoad(fs.readFileSync('recon-view.yml', 'utf8'));
 
-
-// const comm = 'select top 2 * from LegalEntity';
-// const comm = `select top 2 * from LegalEntity le 
-//             join LegalEntityType let 
-//             on le.LegalEntityTypeId = let.LegalEntityTypeId`;
-
 main();
 
 
 async function main() {
-    console.log(reconConfig);
-    console.log(reconConfig["vMember"].input);
+    // console.log(reconConfig);
+    // console.log(reconConfig["vMember"].input);
+    console.log("Start %-30s", (new Date()));
+
     let inputTable = reconConfig["vMember"].input;
 
     let inputColumns = await GetTableColumns(inputTable, isInput = true);
     let outputColumns = await GetTableColumns('vMember', isInput = false);
+    let ignoreInputColumns = reconConfig["vMember"].ignoreColumns;
 
-    let columnMap = SchemaCheck(outputColumns, inputColumns);
-    //console.log(columnMap['Fax']);
-    // let viewResult = await RunSql(outputDbConfig, "select  * from vMember where ExternalReference between '430000000' and '440000000' and Gender is not null  order by ExternalReference");
-    // let tableResult = await RunSql(inputDbConfig, "select  * from Recreo_Extracts..MemberExtract where ExternalReference between '430000000' and '440000000' and Gender is not null  order by ExternalReference");
-    //console.log(sqlResult);
+    let columnMap = SchemaCheck(outputColumns, inputColumns, ignoreInputColumns);
     let viewResult = await RunSql(outputDbConfig, reconConfig["vMember"].outputDataSet);
     let tableResult = await RunSql(inputDbConfig, reconConfig["vMember"].inputDataSet);
 
+    let rowCount = 0;
     const outputFormat = "%-120s";
-    viewResult.forEach( v => {
+    viewResult.forEach(v => {
         let mr = tableResult.find(t => t.ExternalReference == v.ExternalReference);
         if (mr instanceof Array)
-            console.log(sprintf.sprintf(outputFormat, `ERROR: externalReference:${v.ExternalReference} has more than one source.` ));
+            console.log(sprintf.sprintf(outputFormat, `ERROR: externalReference:${v.ExternalReference} has more than one source.`));
         else if (mr == undefined)
             console.log(sprintf.sprintf(outputFormat, `ERROR: externalReference:${v.ExternalReference} has NO source found.`));
         else {
-            console.log(sprintf.sprintf(outputFormat, `------------------------------Found: externalReference:${v.ExternalReference} source found.`));
+            //console.log(sprintf.sprintf(outputFormat, `------------------------------Found: externalReference:${v.ExternalReference} source found.`));
             Reflect.ownKeys(v).forEach(key => {
                 // console.log(mr);
-                if(key in columnMap)
-                {
+                if (key in columnMap) {
                     let outputValue = JSON.stringify(v[key]);
                     let inputValue = JSON.stringify(mr[key]);
-                    if (outputValue != inputValue)
-                    {
+                    if (outputValue != inputValue) {
                         columnMap[key].errorCount++;
-                        console.log(sprintf.sprintf(outputFormat,`${key}: output:${outputValue}  -- input:${inputValue}`));
+                        console.log(sprintf.sprintf(outputFormat, `${key}: output:${outputValue}  -- input:${inputValue}`));
                         //console.log(typeof outputValue, typeof inputValue)
                     }
                     columnMap[key].totalCount++;
                 }
             });
         }
+
+        if(++rowCount % 1000 === 0)
+        {
+            console.log(sprintf.sprintf(outputFormat, `${rowCount} row Checked`));
+            let rLength = tableResult.length;
+            tableResult = tableResult.slice(1000, rLength);
+        }
     });
 
-    console.log(columnMap);
+    console.log("\n\n");
+
+    const reportFormat = "%-36s\t%-60s\t%-12s\t%-12s";
+    console.log(sprintf.sprintf(reportFormat, "OutputColumn", "InputColumn", "Error Count", "Total Count"));
+    console.log(sprintf.sprintf(reportFormat, "------------", "-----------", "-----------", "-----------"));
+    //console.log(columnMap);
+    Object.keys(columnMap).forEach(k => {
+        console.log(sprintf.sprintf(reportFormat, k, `${columnMap[k].sourceTable}.${columnMap[k].sourceColumn}`
+        ,  columnMap[k].errorCount, columnMap[k].totalCount,));
+    })
+
+    console.log("End %-30s", (new Date()));
 }
 
 
-function SchemaCheck(outputColumns, inputColumns) {
+function SchemaCheck(outputColumns, inputColumns, ignoreInputColumns) {
     let columnMap = [];
     const outputFormat = '%-36s%-60s%s';
     console.log(sprintf.sprintf(outputFormat, 'Output View Column', 'Input Column', 'Comment'));
     console.log(sprintf.sprintf(outputFormat, '------------------', '------------', '-------'));
     outputColumns.forEach(r => {
-        let im = inputColumns.find(ir => ir.columnName == r.columnName);
-        //console.log(inputMatch);
-        if (im instanceof Array)
-            console.log(sprintf.sprintf(outputFormat, r.columnName, "N/A", "More Than One Value"));
-        else if (im == undefined)
-            console.log(sprintf.sprintf(outputFormat, r.columnName, "N/A", "Not input Column matched"));
-        else {
-            let warning = (im.system_type_id == r.system_type_id
-                && im.precision == r.precision
-                && im.max_length == r.max_length)
-                ? "" :
-                `WARNING: Data Type Not Match. DataType:${im.system_type_id} vs ${r.system_type_id} \
--- max_length :${im.max_length} vs ${r.max_length} -- precision :${im.precision} vs ${r.precision}`;
+        if (ignoreInputColumns.includes(r.columnName)) {
+            console.log(sprintf.sprintf(outputFormat, r.columnName, "N/A", "Ignored"));
+        } else {
+            let im = inputColumns.find(ir => ir.columnName == r.columnName);
+            //console.log(inputMatch);
+            if (im instanceof Array)
+                console.log(sprintf.sprintf(outputFormat, r.columnName, "N/A", "More Than One Value"));
+            else if (im == undefined)
+                console.log(sprintf.sprintf(outputFormat, r.columnName, "N/A", "Not input Column matched"));
+            else {
+                let warning = (im.system_type_id == r.system_type_id
+                    && im.precision == r.precision
+                    && im.max_length == r.max_length)
+                    ? "" :
+                    `WARNING: Data Type Not Match! DataType:${im.system_type_id} vs ${r.system_type_id}` +
+                    ` -- max_length :${im.max_length} vs ${r.max_length} -- precision :${im.precision} vs ${r.precision}`;
 
-            console.log(sprintf.sprintf(outputFormat, r.columnName, `${im.tableName}.${im.columnName}`, warning));
-            if (warning === "")
+                console.log(sprintf.sprintf(outputFormat, r.columnName, `${im.tableName}.${im.columnName}`, warning));
+
                 columnMap[r.columnName] = { sourceTable: im.tableName, sourceColumn: im.columnName, errorCount: 0, totalCount: 0 };
+            }
         }
     });
     return columnMap;
@@ -99,16 +113,12 @@ async function GetTableColumns(tables, isInput) {
     let currentDbConfig = isInput ? inputDbConfig : outputDbConfig;
     let nameString = isInput ? tables.map((t) => `'${t}'`).join(",") : `'${tables}'`;
 
-
     let colArray = [];
     const command = `
     select o.[name] as tablename, c.[name] as columnname, c.system_type_id, c.max_length, c.[precision]  from sys.objects o join sys.columns  c on o.object_id = c.object_id\
     where o.type='${objecttype}'  and o.name in (${nameString}) order by tablename, c.column_id`;
 
-    //console.log(command);
-
     try {
-        //console.log("sql connecting......")
         const pool = await sql.connect(currentDbConfig)
         const result = await pool.request().query(command);
 
@@ -131,7 +141,7 @@ async function GetTableColumns(tables, isInput) {
 async function RunSql(dbConfig, command) {
     let result;
     try {
-        console.log("sql connecting......")
+        // console.log("sql connecting......")
         let pool = await sql.connect(dbConfig)
         result = await pool.request().query(command);
         await sql.close();
@@ -139,6 +149,6 @@ async function RunSql(dbConfig, command) {
         console.log(err);
     }
 
-    return  result.recordset;
+    return result.recordset;
 }
 

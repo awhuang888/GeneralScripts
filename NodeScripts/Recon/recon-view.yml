@@ -2,6 +2,23 @@
 vMember:
     input:
       - MemberExtract
+    # inputDataSet: 
+    #   "select  * from Recreo_Extracts..MemberExtract 
+    #   where ExternalReference between '430000000' and '440000000' 
+    #   and Gender is not null  order by ExternalReference"
+    # outputDataSet: 
+    #   "select  * from vMember 
+    #   where ExternalReference between '430000000' and '440000000' 
+    #   and Gender is not null  order by ExternalReference"
+    inputDataSet: 
+      "select  * from Recreo_Extracts..MemberExtract order by ExternalReference" 
+    outputDataSet: 
+      "select  * from vMember where ExternalReference COLLATE DATABASE_DEFAULT in (select ExternalReference COLLATE DATABASE_DEFAULT from Recreo_Extracts..MemberExtract) order by ExternalReference"
+    ignoreColumns:
+      - ConversationId
+      - LegalEntityId
+      - TaxFileNumber
+
 vAccount:
     input:
       - AccountExtract
