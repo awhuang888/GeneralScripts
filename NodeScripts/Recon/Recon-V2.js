@@ -34,23 +34,39 @@ async function main() {
     let outputColumns = await GetTableColumns('vMember', isInput = false);
 
     let columnMap = SchemaCheck(outputColumns, inputColumns);
-    //console.log(columnMap);
+    //console.log(columnMap['Fax']);
     let viewResult = await RunSql(outputDbConfig, "select  * from vMember where ExternalReference between '430000000' and '440000000' and Gender is not null  order by ExternalReference");
     let tableResult = await RunSql(inputDbConfig, "select  * from Recreo_Extracts..MemberExtract where ExternalReference between '430000000' and '440000000' and Gender is not null  order by ExternalReference");
     //console.log(sqlResult);
 
     const outputFormat = "%-120s";
     viewResult.forEach( v => {
-        let mr = tableResult.find(t => t.externalReference == v.externalReference);
-        //console.log(inputMatch);
+        let mr = tableResult.find(t => t.ExternalReference == v.ExternalReference);
         if (mr instanceof Array)
-            console.log(sprintf.sprintf(outputFormat, `ERROR: externalReference:${v.externalReference} has more than one source.` ));
+            console.log(sprintf.sprintf(outputFormat, `ERROR: externalReference:${v.ExternalReference} has more than one source.` ));
         else if (mr == undefined)
-            console.log(sprintf.sprintf(outputFormat, `ERROR: externalReference:${v.externalReference} has NO source found.`));
+            console.log(sprintf.sprintf(outputFormat, `ERROR: externalReference:${v.ExternalReference} has NO source found.`));
         else {
-            console.log(sprintf.sprintf(outputFormat, `Found: externalReference:${v.externalReference} has NO source found.`));
+            console.log(sprintf.sprintf(outputFormat, `------------------------------Found: externalReference:${v.ExternalReference} source found.`));
+            Reflect.ownKeys(v).forEach(key => {
+                // console.log(mr);
+                if(key in columnMap)
+                {
+                    let outputValue = JSON.stringify(v[key]);
+                    let inputValue = JSON.stringify(mr[key]);
+                    if (outputValue != inputValue)
+                    {
+                        columnMap[key].errorCount++;
+                        console.log(sprintf.sprintf(outputFormat,`${key}: output:${outputValue}  -- input:${inputValue}`));
+                        //console.log(typeof outputValue, typeof inputValue)
+                    }
+                    columnMap[key].totalCount++;
+                }
+            });
         }
     });
+
+    console.log(columnMap);
 }
 
 
@@ -117,50 +133,6 @@ async function GetTableColumns(tables, isInput) {
     return colArray;
 }
 
-
-
-async function getViewsDefinition() {
-    const command = `
-    select o.name, definition
-    from sys.objects     o
-    join sys.sql_modules m on m.object_id = o.object_id
-    where  o.type = 'V' and o.name not like 'vw[_]%' order by o.name
-    `;
-    let viewDef = []
-    try {
-        console.log("sql connecting......")
-        let pool = await sql.connect(outputDbConfig)
-        let result = await pool.request().query(command);
-        const allEqual = arr => arr.every(v => v === arr[0]);
-
-        result.recordset.forEach((r) => {
-            viewDef.push({ name: r.name, definition: r.definition });
-        });
-        await sql.close();
-    } catch (err) {
-        console.log(err);
-    }
-
-    return viewDef;
-}
-
-function GetTableArray(comm) {
-    let tempArray = comm.split(/\s+/);
-    let f = tempArray.find(a => a.toUpperCase() == 'FROM' || a.toUpperCase() == 'JOIN');
-    let tableArray = [];
-
-    while (f) {
-        const ind = tempArray.indexOf(f);
-        const name = tempArray[ind + 1];
-        const alias = tempArray[ind + 2];
-        tableArray.push({ name, alias });
-        console.log({ name, alias });
-        tempArray = tempArray.slice(ind + 3);
-        f = tempArray.find(a => a.toUpperCase() == 'FROM' || a.toUpperCase() == 'JOIN');
-    }
-    return tableArray;
-}
-
 async function RunSql(dbConfig, command) {
     let result;
     try {
@@ -175,3 +147,45 @@ async function RunSql(dbConfig, command) {
     return  result.recordset;
 }
 
+
+// async function getViewsDefinition() {
+//     const command = `
+//     select o.name, definition
+//     from sys.objects     o
+//     join sys.sql_modules m on m.object_id = o.object_id
+//     where  o.type = 'V' and o.name not like 'vw[_]%' order by o.name
+//     `;
+//     let viewDef = []
+//     try {
+//         console.log("sql connecting......")
+//         let pool = await sql.connect(outputDbConfig)
+//         let result = await pool.request().query(command);
+//         const allEqual = arr => arr.every(v => v === arr[0]);
+
+//         result.recordset.forEach((r) => {
+//             viewDef.push({ name: r.name, definition: r.definition });
+//         });
+//         await sql.close();
+//     } catch (err) {
+//         console.log(err);
+//     }
+
+//     return viewDef;
+// }
+
+// function GetTableArray(comm) {
+//     let tempArray = comm.split(/\s+/);
+//     let f = tempArray.find(a => a.toUpperCase() == 'FROM' || a.toUpperCase() == 'JOIN');
+//     let tableArray = [];
+
+//     while (f) {
+//         const ind = tempArray.indexOf(f);
+//         const name = tempArray[ind + 1];
+//         const alias = tempArray[ind + 2];
+//         tableArray.push({ name, alias });
+//         console.log({ name, alias });
+//         tempArray = tempArray.slice(ind + 3);
+//         f = tempArray.find(a => a.toUpperCase() == 'FROM' || a.toUpperCase() == 'JOIN');
+//     }
+//     return tableArray;
+// }
