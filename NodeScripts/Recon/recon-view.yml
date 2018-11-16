@@ -2,26 +2,39 @@
 vMember:
     input:
       - MemberExtract
-    # inputDataSet: 
+    keyColumns:
+      - ExternalReference
+    # inputDataSql: 
     #   "select  * from Recreo_Extracts..MemberExtract 
     #   where ExternalReference between '430000000' and '440000000' 
     #   and Gender is not null  order by ExternalReference"
-    # outputDataSet: 
+    # outputDataSql: 
     #   "select  * from vMember 
     #   where ExternalReference between '430000000' and '440000000' 
     #   and Gender is not null  order by ExternalReference"
-    inputDataSet: 
-      "select  * from Recreo_Extracts..MemberExtract order by ExternalReference" 
-    outputDataSet: 
-      "select  * from vMember where ExternalReference COLLATE DATABASE_DEFAULT in (select ExternalReference COLLATE DATABASE_DEFAULT from Recreo_Extracts..MemberExtract) order by ExternalReference"
+    inputDataSql: 
+      "select  * from Recreo_Extracts..MemberExtract order by ExternalReference"  
+    outputDataSql: 
+      "select  * from vMember where ExternalReference COLLATE DATABASE_DEFAULT 
+      in (select ExternalReference COLLATE DATABASE_DEFAULT from Recreo_Extracts..MemberExtract) 
+      order by ExternalReference"
     ignoreColumns:
       - ConversationId
       - LegalEntityId
       - TaxFileNumber
 
-vAccount:
+vSuperAccount:
     input:
-      - AccountExtract
-      - other
-    filter: dsfafdafda
-            asdfafdas
+      - SuperAccountExtract
+    keyColumns:
+      - AccountExternalReference
+    inputDataSql: 
+      "select  * from Recreo_Extracts..SuperAccountExtract order by AccountExternalReference"  
+    outputDataSql: 
+      "select  * from vSuperAccount where AccountExternalReference COLLATE DATABASE_DEFAULT 
+      in (select AccountExternalReference COLLATE DATABASE_DEFAULT from Recreo_Extracts..SuperAccountExtract) 
+      order by AccountExternalReference"
+    ignoreColumns:
+      - OwnerId
+      - AccountId
+      - ConversationId
