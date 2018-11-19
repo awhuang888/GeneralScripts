@@ -61,11 +61,11 @@ const templateObj = {
         else if ((new RegExp('DocumentExtract', 'g')).test(tableName) && (new RegExp('VisibilityId', 'g')).test(colName)) {
             console.log(sprintf.sprintf(`CONSTRAINT [CHK_${tableName}_${colName}]`));
             console.log(sprintf.sprintf(`\tCHECK ( ${colName} in (1000, 10000, 10000000) ) --10000000 = Admins only, 10000 = Visible to member, 1000 = Visible to service provider but not member`));
-        }        
+        }
         else if ((new RegExp('DocumentExtract', 'g')).test(tableName) && (new RegExp('StatusId', 'g')).test(colName)) {
             console.log(sprintf.sprintf(`CONSTRAINT [CHK_${tableName}_${colName}]`));
             console.log(sprintf.sprintf(`\tCHECK ( ${colName} in (3,6)) --3 = Complete, 6 = Deleted`));
-        } 
+        }
         else if ((new RegExp('SignificantLifeEventExtract', 'g')).test(tableName) && (new RegExp('SignificantEventTypeId', 'g')).test(colName)) {
             console.log(sprintf.sprintf(`CONSTRAINT [CHK_${tableName}_${colName}]`));
             console.log(sprintf.sprintf(`\tCHECK ( ${colName} between 1 and 10) --See Document`));
@@ -73,7 +73,7 @@ const templateObj = {
         else if ((new RegExp('InsuranceUnderwitingHistoryExtract', 'g')).test(tableName) && (new RegExp('OtherRequestTypeId', 'g')).test(colName)) {
             console.log(sprintf.sprintf(`CONSTRAINT [CHK_${tableName}_${colName}]`));
             console.log(sprintf.sprintf(`\tCHECK ( ${colName} in (1)) --1 = Special offer (double your cover)`));
-        }   
+        }
         else if ((new RegExp('InsuranceUnderwitingHistoryExtract', 'g')).test(tableName) && (new RegExp('StatusId', 'g')).test(colName)) {
             console.log(sprintf.sprintf(`CONSTRAINT [CHK_${tableName}_${colName}]`));
             console.log(sprintf.sprintf(`\tCHECK ( ${colName} in (1,2,3)) --1 = Requested, 2 = Approved, 3 = Declined`));
@@ -81,7 +81,7 @@ const templateObj = {
         else if ((new RegExp('DocumentContentExtract', 'g')).test(tableName) && (new RegExp('ContentTypeId', 'g')).test(colName)) {
             console.log(sprintf.sprintf(`CONSTRAINT [CHK_${tableName}_${colName}]`));
             console.log(sprintf.sprintf(`\tCHECK ( ${colName} between 1 and 13) -- See Document`));
-        }       
+        }
 
         //Following are apply constraints by matching text in design notes.
         else if ((new RegExp('1 = Phone', 'g')).test(note)) {
@@ -172,14 +172,16 @@ let sheet_name_list = workbook.SheetNames;
 const xlData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheet_name_list[0]], { FS: colDelimiter, RS: rowDelimiter });
 
 xlData.split(rowDelimiter).map((li) => {
-    let aStr = li.split(colDelimiter); 
-    return {name : aStr[0]
-        , dataType : aStr[1]
+    let aStr = li.split(colDelimiter);
+    return {
+        name: aStr[0]
+        , dataType: aStr[1]
         , nullable: aStr[2]
-        , defaultValue:aStr[3]
-        , notes:aStr[4]} 
-}).forEach( (line) => {
-     //console.log("----", line);
+        , defaultValue: aStr[3]
+        , notes: aStr[4]
+    }
+}).forEach((line) => {
+    //console.log("----", line);
 
     if (line.dataType == "DataType" || line.dataType == "Data Type") {
         tableName = line.name.replace("Table", "").replace(/"/g, '').replace(/table/gi, "").trim();
@@ -193,11 +195,11 @@ xlData.split(rowDelimiter).map((li) => {
         index_1_Array = [];
         index_2_Array = [];
     }
-    else if (line.dataType == undefined || line.dataType == "" ) {
+    else if (line.dataType == undefined || line.dataType == "") {
         if (!isEndOfTable) {
             if (pkArray.length > 0) templateObj.GenPK(tableName);
             console.log(')\rgo');
-            
+
             if (index_1_Array.length > 0) templateObj.GenIndex_1(tableName);
             if (index_2_Array.length > 0) templateObj.GenIndex_2(tableName);
             console.log('');
@@ -205,8 +207,8 @@ xlData.split(rowDelimiter).map((li) => {
         }
     }
     else {
-        var defaultVal = (line.defaultValue == undefined || line.defaultValue == "") 
-                        ? "" : sprintf.sprintf("\tdefault %s", line.defaultValue.replace(/"/g, ''));
+        var defaultVal = (line.defaultValue == undefined || line.defaultValue == "")
+            ? "" : sprintf.sprintf("\tdefault %s", line.defaultValue.replace(/"/g, ''));
         var dataType = line.dataType.replace(/"/g, '');
         var colName = line.name.replace(/"/g, '');
         console.log(sprintf.sprintf("%1s %-36s %-20s %s%s",
