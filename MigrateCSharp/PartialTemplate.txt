@@ -1,0 +1,108 @@
+# Template
+# Sample: replace MainEntityName with A-ccount, mainEntityName with a-ccount, replace EntityName with LostOfA-ccount, replace entityName with lostOfA-ccount
+# Copy & Paste To /Source/OneTrust/Source/Recreo.Api/Controllers/Migration/MigrationController.cs
+#
+
+        [HttpPost]
+        [Route("[*EntityName*]")]
+        public async Task<[*EntityName*]> Create[*EntityName*](Create[*EntityName*] create[*EntityName*])
+        {
+            var [*EntityName*] = await _migrationDomainService.Create[*EntityName*]Async(create[*EntityName*]);
+
+            return [*EntityName*];
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
+#
+        Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*EntityName*]);
+
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/[*MainEntityName*]s/[*MainEntityName*]Repository.cs or other Main Repository
+#
+        public async Task<Models.ConditionOfRelease> CreateConditionOfReleaseAsync(Models.ConditionOfRelease conditionOfRelease)
+        {
+            using (var dataContext = DataContextFactory.Create<IRecreoDataContext>())
+            {
+                dataContext.ConditionOfReleases.Add(conditionOfRelease);
+                await dataContext.SaveChangesAsync();
+                return conditionOfRelease;
+            }
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/[*MainEntityName*]s/Repositories/Interfaces/I[*MainEntityName*]Repository.cs or other Main Repository
+#
+        Task<ConditionOfRelease> CreateConditionOfReleaseAsync(ConditionOfRelease conditionOfRelease);
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
+#
+        public async Task<ConditionOfRelease> CreateConditionOfReleaseAsync(ConditionOfRelease conditionOfRelease)
+        {
+            using (var transaction = _transactionScopeAdapterFactory.Create())
+            {
+                conditionOfRelease = await _[*mainEntityName*]Repository.CreateConditionOfReleaseAsync(conditionOfRelease);
+                transaction.Complete();
+
+                return conditionOfRelease;
+            }
+        }
+
+
+############### Following are codes in TransferMine.Data #################################################
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Constants.cs
+#
+        public static string [*EntityName*] = "[*EntityName*]";
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Mapper.cs
+#
+
+        public static DomainModels.[*EntityName*] To[*EntityName*](this [*EntityName*]Extract extract)
+        {
+            return new DomainModels.[*EntityName*]()
+            {
+                //Todo: Apply Mapping Logic here.
+            };
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/StepDescriptor.cs
+#
+            // [*EntityName*]
+            Add(new Step()
+            {
+                Order = ?,  //ToDo: Config here
+                Name = "[*EntityName*]",
+                Tasks = new List<StepTask>() { new StepTask(container.Resolve<Transfer[*EntityName*]>()) }
+            });
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/IMigrationRepository.cs
+#
+        Task<int> Get[*EntityName*]ExtractsCountAsync();
+        Task<IList<[*EntityName*]Extract>> Get[*EntityName*]ExtractsAsync(int batchNo, int batchSize);
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/DbContext/RecreoMigrationDbContext.cs
+#
+        public virtual DbSet<[*EntityName*]Extract> [*EntityName*]Extracts { get; set; }
+
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/MigrationRepository.cs
+#
+        public async Task<int> Get[*EntityName*]ExtractsCountAsync()
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                return await dbContext.[*EntityName*]Extracts.CountAsync();
+            }
+        }
+
+        public async Task<IList<[*EntityName*]Extract>> Get[*EntityName*]ExtractsAsync(int batchNo, int batchSize)
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                dbContext.Configuration.AutoDetectChangesEnabled = false;
+                dbContext.Configuration.ValidateOnSaveEnabled = false;
+                //ToDo: Need to Modify the extraction order below
+                return await dbContext.[*EntityName*]Extracts.OrderBy(c => c.[*MainEntityName*]ExternalReference).ThenBy(c => c.TypeId).ThenBy(c => c.ReleaseDate)
+                                      .Skip(batchNo * batchSize).Take(batchSize).ToListAsync();
+            }
+        }
+ 

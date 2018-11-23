@@ -1,0 +1,165 @@
+﻿#Usage:
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Recreo.Api.Models.V3;
+using Recreo.Domain.Models;
+using Recreo.Logging;
+using Recreo.Migration.Data.Exceptions;
+using Recreo.Migration.Data.Helpers;
+using Recreo.Migration.Data.Models;
+using Recreo.Migration.Data.Repositories;
+using Recreo.Shared.Configuration.Interfaces;
+#pragma warning disable 4014
+
+namespace Recreo.Migration.Data.Transfers
+{
+    public sealed class Transfer[*EntityName*] : BaseTransfer
+    {
+        public Transfer[*EntityName*](HttpClient client, IConfigurationService configurationService, ILoggingService loggingService, IMigrationRepository migrationRepository)
+            : base(client, configurationService, loggingService, migrationRepository, MigrationConstants.MigrationKeys.[*EntityName*])
+        {
+        }
+
+        protected override async Task<MigrationSummary> ExecuteTransferInternalAsync(Guid batchId)
+        {
+            var tasks = new List<Task<[*EntityName*]>>();
+            var migrationSummary = new MigrationSummary
+            {
+                BatchId = batchId,
+                MigrationType = TransferName,
+                StartDate = DateTime.Now
+            };
+
+            var batchNo = 0;
+            var processedRecords = 0;
+
+            var ownerKeys = await GetOwnerKeys();
+
+            var migrationKeys = new HashSet<string>((await MigrationRepository.GetMigrationKeysAsync(TransferName)).Select(x => x.EntityKey1));
+
+            migrationSummary.TotalRecords = await MigrationRepository.GetBankAccountExtractCountAsync();
+            await MigrationRepository.CreateMigrationSummaryAsync(migrationSummary);
+
+            MigrationKey ToMigrationKeyFunc([*EntityName*] t) => new MigrationKey
+            {
+                //Todo: Design the MigrationKey Record content
+                BatchId = batchId,
+                EntityType = TransferName,
+                ??//EntityKey1 = t.ID.ToString(),
+                ??//EntityFK1 = t.AssetId,
+                MigratedDate = DateTime.Now
+            };
+
+            var extracts = await MigrationRepository.Get[*EntityName*]ExtractsAsync(batchNo, BatchSize);
+            while (extracts.Count > 0)
+            {
+                LoggingService.WriteInformational($"Processing [*EntityName*] record batch {batchNo}. Batch size: {BatchSize}", "Processing [*EntityName*]", TransferName);
+                foreach (var extract in extracts)
+                {
+                    try
+                    {
+                        //todo: Need to check whether key is AccountExternalReference
+                        ??if (!HasBeenMigrated(processedRecords + 1, extract.AccountExternalReference.ToString(), migrationKeys, migrationSummary))
+                            tasks.Add(Create[*EntityName*]Async(migrationSummary, processedRecords + 1, migrationSummary.TotalRecords, extract, ownerKeys));
+                    }
+                    catch (MemberNotFoundException memberNotFoundException)
+                    {
+                        await HandleErrorAsync(migrationSummary, extract, $"Error processing [*EntityName*]: {memberNotFoundException.Message}");
+                    }
+                    catch (Exception e)
+                    {
+                        //todo: To Design Error Message Content
+                        ??await HandleErrorAsync(migrationSummary, extract, $"Error processing [*EntityName*] {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate}", e);
+                    }
+
+                    if (tasks.Count >= ProcessSize)
+                    {
+                        await ProcessTasks(migrationSummary, tasks, ToMigrationKeyFunc);
+                        tasks.Clear();
+                    }
+                    processedRecords++;
+                }
+
+                if (tasks.Any())
+                {
+                    await ProcessTasks(migrationSummary, tasks, ToMigrationKeyFunc);
+                    tasks.Clear();
+                }
+
+                batchNo++;
+
+                await MigrationRepository.UpdateMigrationSummaryAsync(batchId, TransferName, null, migrationSummary.TotalRecords, migrationSummary.Successful,
+                            migrationSummary.Skipped, migrationSummary.Failed);
+
+                extracts = await MigrationRepository.Get[*EntityName*]ExtractsAsync(batchNo, BatchSize);
+            }
+            await MigrationRepository.UpdateMigrationSummaryAsync(batchId, TransferName, DateTime.Now, migrationSummary.TotalRecords, migrationSummary.Successful,
+                            migrationSummary.Skipped, migrationSummary.Failed);
+
+            return migrationSummary;
+        }
+
+        private async Task<[*EntityName*]> Create[*EntityName*]Async(MigrationSummary migrationSummary, long recordNumber, long totalRecords, [*EntityName*]Extract extract, Dictionary<string, long> ownerKeys)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            var [*EntityName*] = extract.To[*EntityName*]();
+            //Todo: to design value to be populate from Key-Value cache after mapping.
+            ??[*EntityName*].LegalEntityAccountId = (int)GetOwnerId(extract.AccountExternalReference, ownerKeys);
+
+            var createTask = await Client.PostAsJsonAsync($"{ApiUrl}/api/assets/[*EntityName*]", [*EntityName*]);
+            if (!createTask.IsSuccessStatusCode)
+                throw new Exception(createTask.Content.ReadAsStringAsync().Result);
+            migrationSummary.Successful++;
+            stopwatch.Stop();
+
+            //todo: To Design Message Content
+            ??LoggingService.WriteVerbose($"[*EntityName*] {recordNumber} of {totalRecords} {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate} created. Time: {stopwatch.Elapsed.TotalMilliseconds} ms", "Create [*EntityName*]", TransferName);
+            return await createTask.ReadAs<[*EntityName*]>();
+        }
+
+        private async Task<Dictionary<string, long>> GetOwnerKeys()
+        {
+            var keys = await MigrationRepository.GetMigrationKeysAsync(MigrationConstants.MigrationKeys.Member, 
+                MigrationConstants.MigrationKeys.Company, MigrationConstants.MigrationKeys.Employer, 
+                MigrationConstants.MigrationKeys.[*EntityName*]);
+            return keys == null ? new Dictionary<string, long>() : keys.ToDictionary(c => c.EntityKey1, c => c.EntityFK1);
+        }
+
+        private static long GetOwnerId(string externalReference, Dictionary<string, long> ownerKeys)
+        {
+            if (!ownerKeys.ContainsKey(externalReference))
+                throw new MemberNotFoundException(externalReference);
+
+            return ownerKeys[externalReference];
+        }
+
+        private async Task HandleErrorAsync(MigrationSummary migrationSummary, [*EntityName*]Extract extract, string errorMessage, Exception ex = null)
+        {
+            migrationSummary.Failed++;
+            if (ex != null)
+                LoggingService.WriteError(ex, errorMessage, $"Recreo.Migration {TransferName} Error", TransferName);
+            else
+                LoggingService.WriteError(errorMessage, $"Recreo.Migration {TransferName} Error", TransferName);
+
+            var migrationFailure = new MigrationFailure
+            {
+                BatchId = migrationSummary.BatchId,
+                EntityType = TransferName,
+                //Todo: To Design Keys to be recorded.
+                ??EntityKey1 = extract.AccountExternalReference,
+                ??EntityKey2 = extract.TypeId.ToString(),
+                ??EntityKey3 = extract.ReleaseDate.ToString(),
+                MigratedDate = DateTime.Now,
+                Error = errorMessage
+            };
+            await MigrationRepository.CreateMigrationFailureAsync(migrationFailure);
+        }
+    }
+}
