@@ -18,16 +18,16 @@ using Recreo.Shared.Configuration.Interfaces;
 
 namespace Recreo.Migration.Data.Transfers
 {
-    public sealed class Transfer[*EntityName*] : BaseTransfer
+    public sealed class TransferAccountLost : BaseTransfer
     {
-        public Transfer[*EntityName*](HttpClient client, IConfigurationService configurationService, ILoggingService loggingService, IMigrationRepository migrationRepository)
-            : base(client, configurationService, loggingService, migrationRepository, MigrationConstants.MigrationKeys.[*EntityName*])
+        public TransferAccountLost(HttpClient client, IConfigurationService configurationService, ILoggingService loggingService, IMigrationRepository migrationRepository)
+            : base(client, configurationService, loggingService, migrationRepository, MigrationConstants.MigrationKeys.AccountLost)
         {
         }
 
         protected override async Task<MigrationSummary> ExecuteTransferInternalAsync(Guid batchId)
         {
-            var tasks = new List<Task<[*EntityName*]>>();
+            var tasks = new List<Task<AccountLost>>();
             var migrationSummary = new MigrationSummary
             {
                 BatchId = batchId,
@@ -45,7 +45,7 @@ namespace Recreo.Migration.Data.Transfers
             migrationSummary.TotalRecords = await MigrationRepository.GetBankAccountExtractCountAsync();
             await MigrationRepository.CreateMigrationSummaryAsync(migrationSummary);
 
-            MigrationKey ToMigrationKeyFunc([*EntityName*] t) => new MigrationKey
+            MigrationKey ToMigrationKeyFunc(AccountLost t) => new MigrationKey
             {
                 //Todo: Design the MigrationKey Record content
                 BatchId = batchId,
@@ -55,26 +55,26 @@ namespace Recreo.Migration.Data.Transfers
                 MigratedDate = DateTime.Now
             };
 
-            var extracts = await MigrationRepository.Get[*EntityName*]ExtractsAsync(batchNo, BatchSize);
+            var extracts = await MigrationRepository.GetAccountLostExtractsAsync(batchNo, BatchSize);
             while (extracts.Count > 0)
             {
-                LoggingService.WriteInformational($"Processing [*EntityName*] record batch {batchNo}. Batch size: {BatchSize}", "Processing [*EntityName*]", TransferName);
+                LoggingService.WriteInformational($"Processing AccountLost record batch {batchNo}. Batch size: {BatchSize}", "Processing AccountLost", TransferName);
                 foreach (var extract in extracts)
                 {
                     try
                     {
                         //todo: Need to check whether key is AccountExternalReference
                         ??if (!HasBeenMigrated(processedRecords + 1, extract.AccountExternalReference.ToString(), migrationKeys, migrationSummary))
-                            tasks.Add(Create[*EntityName*]Async(migrationSummary, processedRecords + 1, migrationSummary.TotalRecords, extract, ownerKeys));
+                            tasks.Add(CreateAccountLostAsync(migrationSummary, processedRecords + 1, migrationSummary.TotalRecords, extract, ownerKeys));
                     }
                     catch (MemberNotFoundException memberNotFoundException)
                     {
-                        await HandleErrorAsync(migrationSummary, extract, $"Error processing [*EntityName*]: {memberNotFoundException.Message}");
+                        await HandleErrorAsync(migrationSummary, extract, $"Error processing AccountLost: {memberNotFoundException.Message}");
                     }
                     catch (Exception e)
                     {
                         //todo: To Design Error Message Content
-                        ??await HandleErrorAsync(migrationSummary, extract, $"Error processing [*EntityName*] {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate}", e);
+                        ??await HandleErrorAsync(migrationSummary, extract, $"Error processing AccountLost {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate}", e);
                     }
 
                     if (tasks.Count >= ProcessSize)
@@ -96,7 +96,7 @@ namespace Recreo.Migration.Data.Transfers
                 await MigrationRepository.UpdateMigrationSummaryAsync(batchId, TransferName, null, migrationSummary.TotalRecords, migrationSummary.Successful,
                             migrationSummary.Skipped, migrationSummary.Failed);
 
-                extracts = await MigrationRepository.Get[*EntityName*]ExtractsAsync(batchNo, BatchSize);
+                extracts = await MigrationRepository.GetAccountLostExtractsAsync(batchNo, BatchSize);
             }
             await MigrationRepository.UpdateMigrationSummaryAsync(batchId, TransferName, DateTime.Now, migrationSummary.TotalRecords, migrationSummary.Successful,
                             migrationSummary.Skipped, migrationSummary.Failed);
@@ -104,32 +104,31 @@ namespace Recreo.Migration.Data.Transfers
             return migrationSummary;
         }
 
-        private async Task<[*EntityName*]> Create[*EntityName*]Async(MigrationSummary migrationSummary, long recordNumber, long totalRecords, [*EntityName*]Extract extract, Dictionary<string, long> ownerKeys)
+        private async Task<AccountLost> CreateAccountLostAsync(MigrationSummary migrationSummary, long recordNumber, long totalRecords, AccountLostExtract extract, Dictionary<string, long> ownerKeys)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var [*EntityName*] = extract.To[*EntityName*]();
+            var AccountLost = extract.ToAccountLost();
             //Todo: to design value to be populate from Key-Value cache after mapping.
-            ??[*EntityName*].LegalEntityAccountId = (int)GetOwnerId(extract.AccountExternalReference, ownerKeys);
+            ??AccountLost.LegalEntityAccountId = (int)GetOwnerId(extract.AccountExternalReference, ownerKeys);
 
-            //todo: Need to confirm the url
-            ??var createTask = await Client.PostAsJsonAsync($"{ApiUrl}/api/assets/[*EntityName*]", [*EntityName*]);
+            var createTask = await Client.PostAsJsonAsync($"{ApiUrl}/api/assets/AccountLost", AccountLost);
             if (!createTask.IsSuccessStatusCode)
                 throw new Exception(createTask.Content.ReadAsStringAsync().Result);
             migrationSummary.Successful++;
             stopwatch.Stop();
 
             //todo: To Design Message Content
-            ??LoggingService.WriteVerbose($"[*EntityName*] {recordNumber} of {totalRecords} {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate} created. Time: {stopwatch.Elapsed.TotalMilliseconds} ms", "Create [*EntityName*]", TransferName);
-            return await createTask.ReadAs<[*EntityName*]>();
+            ??LoggingService.WriteVerbose($"AccountLost {recordNumber} of {totalRecords} {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate} created. Time: {stopwatch.Elapsed.TotalMilliseconds} ms", "Create AccountLost", TransferName);
+            return await createTask.ReadAs<AccountLost>();
         }
 
         private async Task<Dictionary<string, long>> GetOwnerKeys()
         {
             var keys = await MigrationRepository.GetMigrationKeysAsync(MigrationConstants.MigrationKeys.Member, 
                 MigrationConstants.MigrationKeys.Company, MigrationConstants.MigrationKeys.Employer, 
-                MigrationConstants.MigrationKeys.[*EntityName*]);
+                MigrationConstants.MigrationKeys.AccountLost);
             return keys == null ? new Dictionary<string, long>() : keys.ToDictionary(c => c.EntityKey1, c => c.EntityFK1);
         }
 
@@ -141,7 +140,7 @@ namespace Recreo.Migration.Data.Transfers
             return ownerKeys[externalReference];
         }
 
-        private async Task HandleErrorAsync(MigrationSummary migrationSummary, [*EntityName*]Extract extract, string errorMessage, Exception ex = null)
+        private async Task HandleErrorAsync(MigrationSummary migrationSummary, AccountLostExtract extract, string errorMessage, Exception ex = null)
         {
             migrationSummary.Failed++;
             if (ex != null)

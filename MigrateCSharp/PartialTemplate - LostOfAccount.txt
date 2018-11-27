@@ -1,0 +1,108 @@
+# Template
+# Sample: replace MainEntityName with A-ccount, mainEntityName with a-ccount, replace EntityName with LostOfA-ccount, replace entityName with lostOfA-ccount
+# Copy & Paste To /Source/OneTrust/Source/Recreo.Api/Controllers/Migration/MigrationController.cs
+#
+
+        [HttpPost]
+        [Route("AccountLost")]
+        public async Task<ApiModel.AccountLost> CreateAccountLost(CreateAccountLost createAccountLost)
+        {
+            var AccountLost = await _migrationDomainService.CreateAccountLostAsync(createAccountLost);
+
+            return AccountLost;
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
+#
+        Task<AccountLost> CreateAccountLostAsync(AccountLost AccountLost);
+
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/Accounts/AccountRepository.cs or other Main Repository
+#
+        public async Task<Models.AccountLost> CreateAccountLostAsync(Models.AccountLost AccountLost)
+        {
+            using (var dataContext = DataContextFactory.Create<IRecreoDataContext>())
+            {
+                dataContext.AccountLosts.Add(AccountLost);
+                await dataContext.SaveChangesAsync();
+                return AccountLost;
+            }
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Accounts/Repositories/Interfaces/IAccountRepository.cs or other Main Repository
+#
+        Task<AccountLost> CreateAccountLostAsync(AccountLost AccountLost);
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
+#
+        public async Task<AccountLost> CreateAccountLostAsync(AccountLost AccountLost)
+        {
+            using (var transaction = _transactionScopeAdapterFactory.Create())
+            {
+                AccountLost = await _AccountRepository.CreateAccountLostAsync(AccountLost);
+                transaction.Complete();
+
+                return AccountLost;
+            }
+        }
+
+
+############### Following are codes in TransferMine.Data #################################################
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Constants.cs
+#
+        public static string AccountLost = "AccountLost";
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Mapper.cs
+#
+
+        public static DomainModels.AccountLost ToAccountLost(this AccountLostExtract extract)
+        {
+            return new DomainModels.AccountLost()
+            {
+                //Todo: Apply Mapping Logic here.
+            };
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/StepDescriptor.cs
+#
+            // AccountLost
+            Add(new Step()
+            {
+                Order = ?,  //ToDo: Config here
+                Name = "AccountLost",
+                Tasks = new List<StepTask>() { new StepTask(container.Resolve<TransferAccountLost>()) }
+            });
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/IMigrationRepository.cs
+#
+        Task<int> GetAccountLostExtractsCountAsync();
+        Task<IList<AccountLostExtract>> GetAccountLostExtractsAsync(int batchNo, int batchSize);
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/DbContext/RecreoMigrationDbContext.cs
+#
+        public virtual DbSet<AccountLostExtract> AccountLostExtracts { get; set; }
+
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/MigrationRepository.cs
+#
+        public async Task<int> GetAccountLostExtractsCountAsync()
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                return await dbContext.AccountLostExtracts.CountAsync();
+            }
+        }
+
+        public async Task<IList<AccountLostExtract>> GetAccountLostExtractsAsync(int batchNo, int batchSize)
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                dbContext.Configuration.AutoDetectChangesEnabled = false;
+                dbContext.Configuration.ValidateOnSaveEnabled = false;
+                //ToDo: Need to Modify the extraction order below
+                return await dbContext.AccountLostExtracts.OrderBy(c => c.AccountExternalReference).ThenBy(c => c.TypeId).ThenBy(c => c.ReleaseDate)
+                                      .Skip(batchNo * batchSize).Take(batchSize).ToListAsync();
+            }
+        }
+ 

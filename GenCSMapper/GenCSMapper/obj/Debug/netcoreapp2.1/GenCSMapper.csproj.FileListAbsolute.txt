@@ -1,0 +1,11 @@
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\bin\Debug\netcoreapp2.1\GenCSMapper.deps.json
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\bin\Debug\netcoreapp2.1\GenCSMapper.runtimeconfig.json
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\bin\Debug\netcoreapp2.1\GenCSMapper.runtimeconfig.dev.json
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\bin\Debug\netcoreapp2.1\GenCSMapper.dll
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\bin\Debug\netcoreapp2.1\GenCSMapper.pdb
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\obj\Debug\netcoreapp2.1\GenCSMapper.csprojAssemblyReference.cache
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\obj\Debug\netcoreapp2.1\GenCSMapper.csproj.CoreCompileInputs.cache
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\obj\Debug\netcoreapp2.1\GenCSMapper.AssemblyInfoInputs.cache
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\obj\Debug\netcoreapp2.1\GenCSMapper.AssemblyInfo.cs
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\obj\Debug\netcoreapp2.1\GenCSMapper.dll
+C:\Allan\GeneralScripts\GenCSMapper\GenCSMapper\obj\Debug\netcoreapp2.1\GenCSMapper.pdb

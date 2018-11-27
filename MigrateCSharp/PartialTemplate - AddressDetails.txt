@@ -1,0 +1,114 @@
+# Template
+# Before Process: need to create the extract domain model in TransferMine.Data(Recreo.Migration.Data) 
+#                 and Api Model in Recreo.Api.Models.V3.migration first.
+# Sample: replace MainEntityName with A-ccount, mainEntityName with a-ccount, replace EntityName with LostOfA-ccount, replace entityName with lostOfA-ccount
+
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
+#
+        Task<AddressDetails> CreateAddressDetailsAsync(AddressDetails addressDetails);
+
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.Api/Controllers/Migration/MigrationController.cs
+#
+
+
+        [HttpPost]
+        [Route("AddressDetailss")]
+        public async Task<AddressDetails> CreateAddressDetails(CreateAddressDetails createAddressDetails)
+        {
+            var addressDetails = await _migrationDomainService.CreateAddressDetailsAsync(createAddressDetails);
+
+            return addressDetails;
+        }
+
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/[*MainEntityName*]s/[*MainEntityName*]Repository.cs or other Main Repository
+#
+        public async Task<Models.AddressDetails> CreateAddressDetailsAsync(Models.AddressDetails addressDetails)
+        {
+            using (var dataContext = DataContextFactory.Create<IRecreoDataContext>())
+            {
+                dataContext.AddressDetailss.Add(addressDetails);
+                await dataContext.SaveChangesAsync();
+                return addressDetails;
+            }
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/[*MainEntityName*]s/Repositories/Interfaces/I[*MainEntityName*]Repository.cs or other Main Repository
+#
+        Task<AddressDetails> CreateAddressDetailsAsync(AddressDetails addressDetails);
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
+#
+        public async Task<AddressDetails> CreateAddressDetailsAsync(AddressDetails addressDetails)
+        {
+            using (var transaction = _transactionScopeAdapterFactory.Create())
+            {
+                addressDetails = await _[*mainEntityName*]Repository.CreateAddressDetailsAsync(addressDetails);
+                transaction.Complete();
+
+                return addressDetails;
+            }
+        }
+
+
+############### Following are codes in TransferMine.Data #################################################
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Constants.cs
+#
+        public static string AddressDetails = "AddressDetails";
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Mapper.cs
+#
+
+        public static DomainModels.AddressDetails ToAddressDetails(this AddressDetailsExtract extract)
+        {
+            return new DomainModels.AddressDetails()
+            {
+                //Todo: Apply Mapping Logic here.
+            };
+        }
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/StepDescriptor.cs
+#
+            // AddressDetails
+            Add(new Step()
+            {
+                Order = ?,  //ToDo: Config here
+                Name = "AddressDetails",
+                Tasks = new List<StepTask>() { new StepTask(container.Resolve<TransferAddressDetails>()) }
+            });
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/IMigrationRepository.cs
+#
+        Task<int> GetAddressDetailsExtractsCountAsync();
+        Task<IList<AddressDetailsExtract>> GetAddressDetailsExtractsAsync(int batchNo, int batchSize);
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/DbContext/RecreoMigrationDbContext.cs
+#
+        public virtual DbSet<AddressDetailsExtract> AddressDetailsExtracts { get; set; }
+
+
+# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/MigrationRepository.cs
+#
+        public async Task<int> GetAddressDetailsExtractsCountAsync()
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                return await dbContext.AddressDetailsExtracts.CountAsync();
+            }
+        }
+
+        public async Task<IList<AddressDetailsExtract>> GetAddressDetailsExtractsAsync(int batchNo, int batchSize)
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                dbContext.Configuration.AutoDetectChangesEnabled = false;
+                dbContext.Configuration.ValidateOnSaveEnabled = false;
+                //ToDo: Need to Modify the extraction order below
+                return await dbContext.AddressDetailsExtracts.OrderBy(c => c.[*MainEntityName*]ExternalReference).ThenBy(c => c.TypeId).ThenBy(c => c.ReleaseDate)
+                                      .Skip(batchNo * batchSize).Take(batchSize).ToListAsync();
+            }
+        }
+ 

@@ -1,51 +1,60 @@
 # Template
+# Before Process: need to create the extract domain model in TransferMine.Data(Recreo.Migration.Data) 
+#                 and Api Model in Recreo.Api.Models.V3.migration first.
 # Sample: replace MainEntityName with A-ccount, mainEntityName with a-ccount, replace EntityName with LostOfA-ccount, replace entityName with lostOfA-ccount
+
+
+# Update the data repository layer ##############
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces(Recreo.Domain.Interfaces)/[*MainEntityName*]s/Repositories/Interfaces/I[*MainEntityName*]Repository.cs or other Main Repository
+#
+        Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*]);
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/[*MainEntityName*]s/[*MainEntityName*]Repository.cs or other Main Repository
+#
+        public async Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*])
+        {
+            using (var dataContext = DataContextFactory.Create<IRecreoDataContext>())
+            {
+                dataContext.[*EntityName*]s.Add([*entityName*]);
+                await dataContext.SaveChangesAsync();
+                return [*entityName*];
+            }
+        }
+
+# Update the domain Serivce layer ##############
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
+#
+        Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*]);
+
+# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
+#
+        public async Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*])
+        {
+            using (var transaction = _transactionScopeAdapterFactory.Create())
+            {
+                [*entityName*] = await _[*mainEntityName*]Repository.Create[*EntityName*]Async([*entityName*]);
+                transaction.Complete();
+
+                return [*entityName*];
+            }
+        }
+
+# Update the Api/Controller layer ##############
+
 # Copy & Paste To /Source/OneTrust/Source/Recreo.Api/Controllers/Migration/MigrationController.cs
 #
 
         [HttpPost]
         [Route("[*EntityName*]")]
-        public async Task<[*EntityName*]> Create[*EntityName*](Create[*EntityName*] create[*EntityName*])
+        public async Task<Create[*EntityName*]> Create[*EntityName*](Create[*EntityName*] create[*EntityName*])
         {
-            var [*EntityName*] = await _migrationDomainService.Create[*EntityName*]Async(create[*EntityName*]);
+            //Todo: Conversion is Need, Mapper is required.
+            var [*entityName*] = await _migrationDomainService.Create[*EntityName*]Async(create[*EntityName*]);
 
-            return [*EntityName*];
+            return [*entityName*];
         }
-
-# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
-#
-        Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*EntityName*]);
-
-
-# Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/[*MainEntityName*]s/[*MainEntityName*]Repository.cs or other Main Repository
-#
-        public async Task<Models.ConditionOfRelease> CreateConditionOfReleaseAsync(Models.ConditionOfRelease conditionOfRelease)
-        {
-            using (var dataContext = DataContextFactory.Create<IRecreoDataContext>())
-            {
-                dataContext.ConditionOfReleases.Add(conditionOfRelease);
-                await dataContext.SaveChangesAsync();
-                return conditionOfRelease;
-            }
-        }
-
-# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/[*MainEntityName*]s/Repositories/Interfaces/I[*MainEntityName*]Repository.cs or other Main Repository
-#
-        Task<ConditionOfRelease> CreateConditionOfReleaseAsync(ConditionOfRelease conditionOfRelease);
-
-# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
-#
-        public async Task<ConditionOfRelease> CreateConditionOfReleaseAsync(ConditionOfRelease conditionOfRelease)
-        {
-            using (var transaction = _transactionScopeAdapterFactory.Create())
-            {
-                conditionOfRelease = await _[*mainEntityName*]Repository.CreateConditionOfReleaseAsync(conditionOfRelease);
-                transaction.Complete();
-
-                return conditionOfRelease;
-            }
-        }
-
 
 ############### Following are codes in TransferMine.Data #################################################
 
