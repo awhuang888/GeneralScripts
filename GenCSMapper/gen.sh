@@ -1,0 +1,1 @@
+node GenScripts.js -m "TestDomainOne.Employee TestDomainTwo.Manager"

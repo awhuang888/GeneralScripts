@@ -1,0 +1,12 @@
+TestDomainOne:
+  GenModelName: GenCSMapper
+  Path: ./template
+  ClassFiles:
+    - Employee
+
+TestDomainTwo:
+  GenModelName: GenCSMapper
+  Path: ./template
+  ClassFiles:
+    - Manager
+      
