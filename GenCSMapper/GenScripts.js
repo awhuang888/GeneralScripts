@@ -20,12 +20,12 @@ async function main(argString) {
     const classTwo = classes[1].split('.')[1];
     if (!modelList[modelOne].ClassFiles.includes(classOne))
     {
-        console.log(`The class ${classOne} not in model ${modelOne}`);
+        console.log(`Error: -------------- The class ${classOne} not in model ${modelOne}`);
         return;
     }
     else if (!modelList[modelTwo].ClassFiles.includes(classTwo))
     {
-        console.log(`The class ${classTwo} not in model ${modelTwo}`);
+        console.log(`Error: -------------- The class ${classTwo} not in model ${modelTwo}`);
         return;
     }
 
@@ -56,6 +56,7 @@ function ScrapClass(model) {
     let rightCounter = 0;
     let classString = '';
     let className = '';
+    let ignoreLines = ['[DataMember]','[Key]', 'DataContract'];
 
     var contents = fs.readFileSync(model, 'utf8');
     console.log(contents);
@@ -63,6 +64,9 @@ function ScrapClass(model) {
     // Reading line by line
     allLines.forEach((line) => {
         let arr = line.split(/\s+/);
+        let isAttributeLine =  line.match(/\[DataMember\]|\[Key\]|\[DataContract/);
+        if (isAttributeLine)
+           return;
         if (arr.includes('class') || scrapStart) {
             if (!scrapStart) {
                 scrapStart = true;
@@ -142,6 +146,7 @@ namespace GenCSMapper
 
 function GenClassesCs(classOneString, classTwoString){
     return `
+    using System;
     namespace GenCSMapper
 {
     ${classOneString}

@@ -1,19 +1,32 @@
 
+    using System;
     namespace GenCSMapper
 {
-        public class Employee
+        public class SignificantLifeEventExtract
     {
-        public int ID {get; set;}
-        public string Name { get; set; }
-        public int MgrId { get; set; }
-        public string MgrName { get; set; }
+        public string MemberExternalReference { get; set; }
+
+        public int SignificantEventTypeId { get; set; }
+
+        public DateTime StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
     }
 
 
-        public class Manager
+        public class CreateSignificantEvent
     {
-        public int MgrId { get; set; }
-        public string MgrName { get; set; }
+        public string MemberExternalReference { get; set; }
+
+        public int SignificantEventTypeId { get; set; }
+
+        public DateTime StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public int LegalEntityId { get; set; }
+
+        public int CreatedByLegalEntityId { get; set; }
     }
 
 }

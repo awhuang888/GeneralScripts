@@ -8,12 +8,12 @@ namespace GenCSMapper
     {
         static void Main(string[] args)
         {
-            var nameListTwo = typeof(Manager).GetProperties().Select(p => p.Name).ToList();
-            var nameListOne = typeof(Employee).GetProperties().Select(p => p.Name).ToList();
+            var nameListTwo = typeof(CreateSignificantEvent).GetProperties().Select(p => p.Name).ToList();
+            var nameListOne = typeof(SignificantLifeEventExtract).GetProperties().Select(p => p.Name).ToList();
 
-            Console.WriteLine($"\tpublic static GenCSMapper.Manager ToGenCSMapper(this Employee model)");
+            Console.WriteLine($"\tpublic static ApiModel.CreateSignificantEvent ToApiModel(this SignificantLifeEventExtract model)");
             Console.WriteLine("\t{");
-            Console.WriteLine($"\t\treturn new GenCSMapper.Manager");
+            Console.WriteLine($"\t\treturn new ApiModel.CreateSignificantEvent");
             Console.WriteLine("\t\t{");
 
             int i = 0;
@@ -31,9 +31,9 @@ namespace GenCSMapper
 
             Console.WriteLine("\n\n");
 
-            Console.WriteLine($"\tpublic static GenCSMapper.Employee ToGenCSMapper(this Manager model)");
+            Console.WriteLine($"\tpublic static MineExtractModel.SignificantLifeEventExtract ToMineExtractModel(this CreateSignificantEvent model)");
             Console.WriteLine("\t{");
-            Console.WriteLine($"\t\treturn new GenCSMapper.Employee");
+            Console.WriteLine($"\t\treturn new MineExtractModel.SignificantLifeEventExtract");
             Console.WriteLine("\t\t{");
 
             i = 0;

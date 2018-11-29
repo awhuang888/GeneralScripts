@@ -9,4 +9,28 @@ TestDomainTwo:
   Path: ./template
   ClassFiles:
     - Manager
+
+RecreoDomain:
+  GenModelName: DomainModels
+  Path: C:\SourceV3\RTS\Source\OneTrust\Source\Recreo.Domain.Models
+  ClassFiles:
+    - AddressDetail
+    - Artefact
+    - ArtefactIndex
+    - SignificantEvent
       
+MigrationApiModel:
+  GenModelName: ApiModel
+  Path: C:\SourceV3\RTS\Source\OneTrust\Source\Recreo.Api.Models\V3\migration
+  ClassFiles:
+    - CreateAddressDetails
+    - CreateDocument
+    - CreateSignificantEvent
+
+MineExtractModel:
+  GenModelName: MineExtractModel
+  Path: C:\SourceV3\RTS\Source\OneTrust\Source\TransferMine\TransferMine.Data\Models
+  ClassFiles:
+    - AddressDetailsExtract
+    - DocumentExtract
+    - SignificantLifeEventExtract
