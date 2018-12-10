@@ -18,16 +18,16 @@ using Recreo.Shared.Configuration.Interfaces;
 
 namespace Recreo.Migration.Data.Transfers
 {
-    public sealed class Transfer[*ApiModelName*] : BaseTransfer
+    public sealed class TransferSignificantEvent : BaseTransfer
     {
-        public Transfer[*ApiModelName*](HttpClient client, IConfigurationService configurationService, ILoggingService loggingService, IMigrationRepository migrationRepository)
-            : base(client, configurationService, loggingService, migrationRepository, MigrationConstants.MigrationKeys.[*ApiModelName*])
+        public TransferSignificantEvent(HttpClient client, IConfigurationService configurationService, ILoggingService loggingService, IMigrationRepository migrationRepository)
+            : base(client, configurationService, loggingService, migrationRepository, MigrationConstants.MigrationKeys.SignificantEvent)
         {
         }
 
         protected override async Task<MigrationSummary> ExecuteTransferInternalAsync(Guid batchId)
         {
-            var tasks = new List<Task<Create[*ApiModelName*]>>();
+            var tasks = new List<Task<CreateSignificantEvent>>();
             var migrationSummary = new MigrationSummary
             {
                 BatchId = batchId,
@@ -42,10 +42,10 @@ namespace Recreo.Migration.Data.Transfers
 
             var migrationKeys = new HashSet<string>((await MigrationRepository.GetMigrationKeysAsync(TransferName)).Select(x => x.EntityKey1));
 
-            migrationSummary.TotalRecords = await MigrationRepository.Get[*ExtractModelName*]ExtractCountAsync();
+            migrationSummary.TotalRecords = await MigrationRepository.GetSignificantLifeEventExtractCountAsync();
             await MigrationRepository.CreateMigrationSummaryAsync(migrationSummary);
 
-            MigrationKey ToMigrationKeyFunc([*ApiModelName*] t) => new MigrationKey
+            MigrationKey ToMigrationKeyFunc(SignificantEvent t) => new MigrationKey
             {
                 //Todo: Design the MigrationKey Record content
                 BatchId = batchId,
@@ -55,26 +55,26 @@ namespace Recreo.Migration.Data.Transfers
                 MigratedDate = DateTime.Now
             };
 
-            var extracts = await MigrationRepository.Get[*ExtractModelName*]ExtractsAsync(batchNo, BatchSize);
+            var extracts = await MigrationRepository.GetSignificantLifeEventExtractsAsync(batchNo, BatchSize);
             while (extracts.Count > 0)
             {
-                LoggingService.WriteInformational($"Processing [*ApiModelName*] record batch {batchNo}. Batch size: {BatchSize}", "Processing [*ApiModelName*]", TransferName);
+                LoggingService.WriteInformational($"Processing SignificantEvent record batch {batchNo}. Batch size: {BatchSize}", "Processing SignificantEvent", TransferName);
                 foreach (var extract in extracts)
                 {
                     try
                     {
                         //todo: Need to check whether key is AccountExternalReference
                         ??if (!HasBeenMigrated(processedRecords + 1, extract.AccountExternalReference.ToString(), migrationKeys, migrationSummary))
-                            tasks.Add(Create[*ApiModelName*]Async(migrationSummary, processedRecords + 1, migrationSummary.TotalRecords, extract, ownerKeys));
+                            tasks.Add(CreateSignificantEventAsync(migrationSummary, processedRecords + 1, migrationSummary.TotalRecords, extract, ownerKeys));
                     }
                     catch (MemberNotFoundException memberNotFoundException)
                     {
-                        await HandleErrorAsync(migrationSummary, extract, $"Error processing [*ApiModelName*]: {memberNotFoundException.Message}");
+                        await HandleErrorAsync(migrationSummary, extract, $"Error processing SignificantEvent: {memberNotFoundException.Message}");
                     }
                     catch (Exception e)
                     {
                         //todo: To Design Error Message Content
-                        ??await HandleErrorAsync(migrationSummary, extract, $"Error processing [*ApiModelName*] {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate}", e);
+                        ??await HandleErrorAsync(migrationSummary, extract, $"Error processing SignificantEvent {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate}", e);
                     }
 
                     if (tasks.Count >= ProcessSize)
@@ -96,7 +96,7 @@ namespace Recreo.Migration.Data.Transfers
                 await MigrationRepository.UpdateMigrationSummaryAsync(batchId, TransferName, null, migrationSummary.TotalRecords, migrationSummary.Successful,
                             migrationSummary.Skipped, migrationSummary.Failed);
 
-                extracts = await MigrationRepository.Get[*ExtractModelName*]ExtractsAsync(batchNo, BatchSize);
+                extracts = await MigrationRepository.GetSignificantLifeEventExtractsAsync(batchNo, BatchSize);
             }
             await MigrationRepository.UpdateMigrationSummaryAsync(batchId, TransferName, DateTime.Now, migrationSummary.TotalRecords, migrationSummary.Successful,
                             migrationSummary.Skipped, migrationSummary.Failed);
@@ -104,32 +104,32 @@ namespace Recreo.Migration.Data.Transfers
             return migrationSummary;
         }
 
-        private async Task<Create[*ApiModelName*]> Create[*ApiModelName*]Async(MigrationSummary migrationSummary, long recordNumber, long totalRecords, [*ExtractModelName*]Extract extract, Dictionary<string, long> ownerKeys)
+        private async Task<SignificantEvent> CreateSignificantEventAsync(MigrationSummary migrationSummary, long recordNumber, long totalRecords, SignificantLifeEventExtract extract, Dictionary<string, long> ownerKeys)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var create[*ApiModelName*] = extract.ApiModel();
+            var SignificantEvent = extract.ToSignificantEvent();
             //Todo: to design value to be populate from Key-Value cache after mapping.
-            ??[*ApiModelName*].LegalEntityAccountId = (int)GetOwnerId(extract.AccountExternalReference, ownerKeys);
+            ??SignificantEvent.LegalEntityAccountId = (int)GetOwnerId(extract.AccountExternalReference, ownerKeys);
 
             //todo: Need to confirm the url
-            ??var createTask = await Client.PostAsJsonAsync($"{ApiUrl}/api/migrations/[*ApiModelName*]s", create[*ApiModelName*]);
+            ??var createTask = await Client.PostAsJsonAsync($"{ApiUrl}/api/assets/SignificantEvent", SignificantEvent);
             if (!createTask.IsSuccessStatusCode)
                 throw new Exception(createTask.Content.ReadAsStringAsync().Result);
             migrationSummary.Successful++;
             stopwatch.Stop();
 
             //todo: To Design Message Content
-            ??LoggingService.WriteVerbose($"[*ApiModelName*] {recordNumber} of {totalRecords} {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate} created. Time: {stopwatch.Elapsed.TotalMilliseconds} ms", "Create [*ApiModelName*]", TransferName);
-            return await createTask.ReadAs<Create[*ApiModelName*]>();
+            ??LoggingService.WriteVerbose($"SignificantEvent {recordNumber} of {totalRecords} {extract.AccountExternalReference} {extract.TypeId} {extract.ReleaseDate} created. Time: {stopwatch.Elapsed.TotalMilliseconds} ms", "Create SignificantEvent", TransferName);
+            return await createTask.ReadAs<SignificantEvent>();
         }
 
         private async Task<Dictionary<string, long>> GetOwnerKeys()
         {
             var keys = await MigrationRepository.GetMigrationKeysAsync(MigrationConstants.MigrationKeys.Member, 
                 MigrationConstants.MigrationKeys.Company, MigrationConstants.MigrationKeys.Employer, 
-                MigrationConstants.MigrationKeys.[*ApiModelName*]);
+                MigrationConstants.MigrationKeys.SignificantEvent);
             return keys == null ? new Dictionary<string, long>() : keys.ToDictionary(c => c.EntityKey1, c => c.EntityFK1);
         }
 
@@ -141,7 +141,7 @@ namespace Recreo.Migration.Data.Transfers
             return ownerKeys[externalReference];
         }
 
-        private async Task HandleErrorAsync(MigrationSummary migrationSummary, [*ExtractModelName*]Extract extract, string errorMessage, Exception ex = null)
+        private async Task HandleErrorAsync(MigrationSummary migrationSummary, SignificantLifeEventExtract extract, string errorMessage, Exception ex = null)
         {
             migrationSummary.Failed++;
             if (ex != null)

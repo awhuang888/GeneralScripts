@@ -6,11 +6,11 @@
 
 # Update the data repository layer ##############
 
-# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces(Recreo.Domain.Interfaces)/[*MainEntityName*]s/Repositories/Interfaces/I[*MainEntityName*]Repository.cs or other Main Repository
+# Step 1 : Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces(Recreo.Domain.Interfaces)/[*MainEntityName*]s/Repositories/Interfaces/I[*MainEntityName*]Repository.cs or other Main Repository
 #
         Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*]);
 
-# Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/[*MainEntityName*]s/[*MainEntityName*]Repository.cs or other Main Repository
+# Step 2 : Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/[*MainEntityName*]s/[*MainEntityName*]Repository.cs or other Main Repository
 #
         public async Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*])
         {
@@ -24,16 +24,17 @@
 
 # Update the domain Serivce layer ##############
 
-# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
+# Step 3 : Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
 #
         Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*]);
 
-# Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
+# Step 4 : Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
 #
         public async Task<[*EntityName*]> Create[*EntityName*]Async([*EntityName*] [*entityName*])
         {
             using (var transaction = _transactionScopeAdapterFactory.Create())
             {
+                //Todo: If required, put validation process here.
                 [*entityName*] = await _[*mainEntityName*]Repository.Create[*EntityName*]Async([*entityName*]);
                 transaction.Complete();
 
@@ -41,9 +42,13 @@
             }
         }
 
+# Step 5 : Run GenCSMapper scaffold ModelMapper method and copy to C:\SourceV3\RTS\Source\OneTrust\Source\Recreo.Api\Shared\ModelMapper.cs 
+# (Recreo.Api.Shared ModelMapper.cs)
+#
+
 # Update the Api/Controller layer ##############
 
-# Copy & Paste To /Source/OneTrust/Source/Recreo.Api/Controllers/Migration/MigrationController.cs
+# Step 6 : Copy & Paste To /Source/OneTrust/Source/Recreo.Api/Controllers/Migration/MigrationController.cs
 #
 
         [HttpPost]
@@ -51,49 +56,21 @@
         public async Task<Create[*EntityName*]> Create[*EntityName*](Create[*EntityName*] create[*EntityName*])
         {
             //Todo: Conversion is Need, Mapper is required.
-            var [*entityName*] = await _migrationDomainService.Create[*EntityName*]Async(create[*EntityName*]);
+            var [*entityName*] = await _migrationDomainService.Create[*EntityName*]Async(create[*EntityName*].ToDomainModle());
 
-            return [*entityName*];
+            return [*entityName*].ToApiModel();
         }
 
 ############### Following are codes in TransferMine.Data #################################################
 
-# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Constants.cs
+# Step 7 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Constants.cs
 #
         public static string [*EntityName*] = "[*EntityName*]";
 
-# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Mapper.cs
+# Step 8 : Can run GenCSMapper scaffold console to Api model Mapper and Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Mapper.cs (Can run GenCSMapper scaffold it)
 #
 
-        public static DomainModels.[*EntityName*] To[*EntityName*](this [*EntityName*]Extract extract)
-        {
-            return new DomainModels.[*EntityName*]()
-            {
-                //Todo: Apply Mapping Logic here.
-            };
-        }
-
-# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/StepDescriptor.cs
-#
-            // [*EntityName*]
-            Add(new Step()
-            {
-                Order = ?,  //ToDo: Config here
-                Name = "[*EntityName*]",
-                Tasks = new List<StepTask>() { new StepTask(container.Resolve<Transfer[*EntityName*]>()) }
-            });
-
-# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/IMigrationRepository.cs
-#
-        Task<int> Get[*EntityName*]ExtractsCountAsync();
-        Task<IList<[*EntityName*]Extract>> Get[*EntityName*]ExtractsAsync(int batchNo, int batchSize);
-
-# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/DbContext/RecreoMigrationDbContext.cs
-#
-        public virtual DbSet<[*EntityName*]Extract> [*EntityName*]Extracts { get; set; }
-
-
-# Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/MigrationRepository.cs
+# Step 9 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/MigrationRepository.cs
 #
         public async Task<int> Get[*EntityName*]ExtractsCountAsync()
         {
@@ -114,4 +91,28 @@
                                       .Skip(batchNo * batchSize).Take(batchSize).ToListAsync();
             }
         }
+
+
+# Step 10 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/IMigrationRepository.cs
+#
+        Task<int> Get[*EntityName*]ExtractsCountAsync();
+        Task<IList<[*EntityName*]Extract>> Get[*EntityName*]ExtractsAsync(int batchNo, int batchSize);
+
+
+# Step 11 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/StepDescriptor.cs
+#
+            // [*EntityName*]
+            Add(new Step()
+            {
+                Order = ?,  //ToDo: Config here
+                Name = "[*EntityName*]",
+                Tasks = new List<StepTask>() { new StepTask(container.Resolve<Transfer[*EntityName*]>()) }
+            });
+
+
+# Step 12 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/DbContext/RecreoMigrationDbContext.cs
+#
+        public virtual DbSet<[*EntityName*]Extract> [*EntityName*]Extracts { get; set; }
+
+
  

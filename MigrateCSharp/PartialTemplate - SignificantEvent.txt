@@ -1,0 +1,120 @@
+# Template
+# Before Process: need to create the extract domain model in TransferMine.Data(Recreo.Migration.Data) 
+#                 and Api Model in Recreo.Api.Models.V3.migration first.
+# Sample: replace MainEntityName with A-ccount, mainEntityName with a-ccount, replace EntityName with LostOfA-ccount, replace entityName with lostOfA-ccount
+
+
+# Update the data repository layer ##############
+
+# Step 1 : Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces(Recreo.Domain.Interfaces)/LegalEntitys/Repositories/Interfaces/ILegalEntityRepository.cs or other Main Repository
+#
+        Task<SignificantEvent> CreateSignificantEventAsync(SignificantEvent significantEvent);
+
+# Step 2 : Copy & Paste To /Source/OneTrust/Source/Recreo.Data/Repositories/LegalEntitys/LegalEntityRepository.cs or other Main Repository
+#
+        public async Task<SignificantEvent> CreateSignificantEventAsync(SignificantEvent significantEvent)
+        {
+            using (var dataContext = DataContextFactory.Create<IRecreoDataContext>())
+            {
+                dataContext.SignificantEvents.Add(significantEvent);
+                await dataContext.SaveChangesAsync();
+                return significantEvent;
+            }
+        }
+
+# Update the domain Serivce layer ##############
+
+# Step 3 : Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices.Interfaces/Migration/IMigrationDomainService.cs
+#
+        Task<SignificantEvent> CreateSignificantEventAsync(SignificantEvent significantEvent);
+
+# Step 4 : Copy & Paste To /Source/OneTrust/Source/Recreo.DomainServices/Migration/MigrationDomainService.cs
+#
+        public async Task<SignificantEvent> CreateSignificantEventAsync(SignificantEvent significantEvent)
+        {
+            using (var transaction = _transactionScopeAdapterFactory.Create())
+            {
+                //Todo: If required, put validation process here.
+                significantEvent = await _legalEntityRepository.CreateSignificantEventAsync(significantEvent);
+                transaction.Complete();
+
+                return significantEvent;
+            }
+        }
+
+# Step 5 : Run GenCSMapper scaffold ModelMapper method and copy to C:\SourceV3\RTS\Source\OneTrust\Source\Recreo.Api\Shared\ModelMapper.cs 
+# (Recreo.Api.Shared ModelMapper.cs)
+#
+
+# Update the Api/Controller layer ##############
+
+# Step 6 : Copy & Paste To /Source/OneTrust/Source/Recreo.Api/Controllers/Migration/MigrationController.cs
+#
+
+        [HttpPost]
+        [Route("SignificantEvent")]
+        public async Task<CreateSignificantEvent> CreateSignificantEvent(CreateSignificantEvent createSignificantEvent)
+        {
+            //Todo: Conversion is Need, Mapper is required.
+            var significantEvent = await _migrationDomainService.CreateSignificantEventAsync(createSignificantEvent.ToDomainModle());
+
+            return significantEvent.ToApiModel();
+        }
+
+############### Following are codes in TransferMine.Data #################################################
+
+# Step 7 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Constants.cs
+#
+        public static string SignificantEvent = "SignificantEvent";
+
+# Step 8 : Can run GenCSMapper scaffold console to Api model Mapper and Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/Mapper.cs (Can run GenCSMapper scaffold it)
+#
+
+# Step 9 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/DbContext/RecreoMigrationDbContext.cs
+#
+        public virtual DbSet<SignificantEventExtract> SignificantEventExtracts { get; set; }
+
+# Step 10 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/MigrationRepository.cs
+#
+        public async Task<int> GetSignificantEventExtractsCountAsync()
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                return await dbContext.SignificantEventExtracts.CountAsync();
+            }
+        }
+
+        public async Task<IList<SignificantEventExtract>> GetSignificantEventExtractsAsync(int batchNo, int batchSize)
+        {
+            using (var dbContext = new RecreoMigrationDbContext())
+            {
+                dbContext.Configuration.AutoDetectChangesEnabled = false;
+                dbContext.Configuration.ValidateOnSaveEnabled = false;
+                //ToDo: Need to Modify the extraction order below
+                return await dbContext.SignificantEventExtracts.OrderBy(c => c.LegalEntityExternalReference).ThenBy(c => c.TypeId).ThenBy(c => c.ReleaseDate)
+                                      .Skip(batchNo * batchSize).Take(batchSize).ToListAsync();
+            }
+        }
+
+
+# Step 11 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Repositories/IMigrationRepository.cs
+#
+        Task<int> GetSignificantEventExtractsCountAsync();
+        Task<IList<SignificantEventExtract>> GetSignificantEventExtractsAsync(int batchNo, int batchSize);
+
+
+# Step 12 : Copy & Paste To /Source/OneTrust/Source/TransferMine/TransferMine.Data/Models/StepDescriptor.cs
+#
+            // SignificantEvent
+            Add(new Step()
+            {
+                Order = ?,  //ToDo: Config here
+                Name = "SignificantEvent",
+                Tasks = new List<StepTask>() { new StepTask(container.Resolve<TransferSignificantEvent>()) }
+            });
+
+
+
+
+
+ 

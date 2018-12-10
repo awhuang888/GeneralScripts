@@ -81,13 +81,16 @@ IF Object_id('[dbo].EntityAssociationExtract', 'U') IS NOT NULL
 	DROP TABLE [dbo].EntityAssociationExtract
 go
 Create Table  EntityAssociationExtract  (
-  EntityExternalReference              nvarchar(32)         Not Null
+  ID                                   int identity         Not Null
+, EntityExternalReference              nvarchar(32)         Not Null
 , AssociatedEntityExternalReference    nvarchar(32)         Not Null
 , AssociationType                      int                  Not Null
   CONSTRAINT [CHK_EntityAssociationExtract_AssociationType]
 	CHECK ( AssociationType in (4,7,8) ) -- 4 = Financial Adviser, 7 = Primary Contact, 8 = Secondary Contact
 , AssociationStartDate                 date                 
 , AssociationEndDate                   date                 
+  CONSTRAINT [PK_EntityAssociationExtract]
+	PRIMARY KEY CLUSTERED ( "ID" ASC )
 )go
 
 IF Object_id('[dbo].MemberExtract', 'U') IS NOT NULL 
@@ -99,7 +102,7 @@ Create Table  MemberExtract  (
 , FirstName                            nvarchar(64)         Not Null
 , MiddleName                           nvarchar(64)         
 , LastName                             nvarchar(64)         Not Null
-, Birthdate                            date                 
+, Birthdate                            date                 Not Null
 , BirthdateVerified                    bit                  
 , Gender                               char(1)              
 , EmailAddress                         varchar(128)         
@@ -126,7 +129,9 @@ Create Table  MemberExtract  (
 , TiEndDate                            date                 
 , JoinedFundDate                       date                 
 , TfnExemption                         bit                  
+, TfnValidationDate                    date                 
 , TfnInterfundConsentDate              date                 
+, PermanentExclusionFromLostReport     bit                  
 , AtoHeldSuperConsolidationConsentDate date                 
 , IntraFundConsolidationConsentDate    date                 
 , NzKiwiSaverAccountNumber             varchar(32)          
@@ -154,19 +159,23 @@ Create Table  EmploymentHistoryExtract  (
 	CHECK ( EmploymentTerminationTypeId in (1,2,3,4,6,7,8,9,10,11,13,14) ) -- See documents
 , EmploymentTerminationReason          nvarchar(max)        
 , ChoiceOfFundDate                     date                 
+  CONSTRAINT [PK_EmploymentHistoryExtract]
+	PRIMARY KEY CLUSTERED ( EmploymentHistoryId ASC )
 )go
 
 IF Object_id('[dbo].EmploymentServiceHistoryExtract', 'U') IS NOT NULL 
 	DROP TABLE [dbo].EmploymentServiceHistoryExtract
 go
 Create Table  EmploymentServiceHistoryExtract  (
-  ID                                   Identity             Not Null
+  ID                                   int identity         Not Null
 , EmploymentHistoryId                  uniqueidentifier     Not Null
 , EffectiveDate                        date                 Not Null
 , EmploymentFraction                   decimal(9,4)         Not Null
 , ServiceEventReasonId                 int                  Not Null
   CONSTRAINT [CHK_EmploymentServiceHistoryExtract_ServiceEventReasonId]
 	CHECK ( ServiceEventReasonId in (1,2,3,4,5,6,7) ) -- See Document
+  CONSTRAINT [PK_EmploymentServiceHistoryExtract]
+	PRIMARY KEY CLUSTERED ( "ID" ASC )
 )go
 
 IF Object_id('[dbo].EmploymentSalaryHistoryExtract', 'U') IS NOT NULL 
@@ -177,6 +186,8 @@ Create Table  EmploymentSalaryHistoryExtract  (
 , StartDate                            date                 Not Null
 , EndDate                              date                 
 , Salary                               decimal(18,6)        Not Null
+  CONSTRAINT [PK_EmploymentSalaryHistoryExtract]
+	PRIMARY KEY CLUSTERED ( EmploymentHistoryId, StartDate ASC )
 )go
 
 IF Object_id('[dbo].WorkTestInformationExtract', 'U') IS NOT NULL 
@@ -186,13 +197,15 @@ Create Table  WorkTestInformationExtract  (
   EntityExternalReference              nvarchar(32)         Not Null
 , FinancialYear                        int                  Not Null
 , EffectiveDate                        date                 Not Null
+  CONSTRAINT [PK_WorkTestInformationExtract]
+	PRIMARY KEY CLUSTERED ( EntityExternalReference, FinancialYear ASC )
 )go
 
 IF Object_id('[dbo].BankAccountExtract', 'U') IS NOT NULL 
 	DROP TABLE [dbo].BankAccountExtract
 go
 Create Table  BankAccountExtract  (
-  ID                                   Identity             Not Null
+  ID                                   int Identity         Not Null
 , OwnerExternalReference               nvarchar(32)         Not Null
 , BSB                                  nvarchar(64)         Not Null
 , AccountNumber                        nvarchar(32)         Not Null
@@ -200,6 +213,8 @@ Create Table  BankAccountExtract  (
 , IsPrimary                            bit                  Not Null
 , StartDate                            date                 Not Null
 , EndDate                              date                 
+  CONSTRAINT [PK_BankAccountExtract]
+	PRIMARY KEY CLUSTERED ( "ID" ASC )
 )go
 
 IF Object_id('[dbo].AddressDetailsExtract', 'U') IS NOT NULL 
@@ -246,12 +261,15 @@ IF Object_id('[dbo].AccountLostExtract', 'U') IS NOT NULL
 	DROP TABLE [dbo].AccountLostExtract
 go
 Create Table  AccountLostExtract  (
-  AccountExternalReference             nvarchar(256)        Not Null
+  Id                                   int identity         Not Null
+, AccountExternalReference             nvarchar(256)        Not Null
 , LostPeriodEndDate                    date                 Not Null
 , LostStatusId                         int                  Not Null
   CONSTRAINT [CHK_AccountLostExtract_LostStatusId]
 	CHECK ( LostStatusId in (1,2,3,4,5) ) -- 1 = Lost, 2 = Inactive, 3 = Transferred, 4 = Found, 5 = Error
 , DateReported                         datetime             Not Null
+  CONSTRAINT [PK_AccountLostExtract]
+	PRIMARY KEY CLUSTERED ( Id ASC )
 )go
 
 IF Object_id('[dbo].PensionAccountExtract', 'U') IS NOT NULL 
@@ -429,7 +447,8 @@ IF Object_id('[dbo].BeneficiaryExtract', 'U') IS NOT NULL
 	DROP TABLE [dbo].BeneficiaryExtract
 go
 Create Table  BeneficiaryExtract  (
-  MemberExternalReference              nvarchar(256)        Not Null
+  ID                                   int identity         Not Null
+, MemberExternalReference              nvarchar(256)        Not Null
 , AccountExternalReference             nvarchar(256)        Not Null
 , Title                                nvarchar(32)         Not Null
 , FirstName                            nvarchar(64)         Not Null
@@ -446,6 +465,8 @@ Create Table  BeneficiaryExtract  (
 , Amount                               decimal(9,4)         Not Null
 , EffectiveDate                        date                 Not Null
 , ExpiryDate                           date                 
+  CONSTRAINT [PK_BeneficiaryExtract]
+	PRIMARY KEY CLUSTERED ( "ID" ASC )
 )go
 
 IF Object_id('[dbo].AssetManagementStrategyExtract', 'U') IS NOT NULL 
@@ -490,7 +511,7 @@ Create Table  TermDepositExtract  (
 , AccountExternalReference             nvarchar(256)        Not Null
 , ProviderExternalReference            nvarchar(256)        Not Null
 , AssetCode                            nvarchar(16)         Not Null
-, s                                    nvarchar(64)         Not Null
+, Name                                 nvarchar(64)         Not Null
 , DisplayName                          nvarchar(256)        Not Null
 , ContractNumber                       nvarchar(64)         Not Null
 , StartDate                            date                 Not Null
@@ -505,11 +526,14 @@ IF Object_id('[dbo].AccountCategoryChangeExtract', 'U') IS NOT NULL
 	DROP TABLE [dbo].AccountCategoryChangeExtract
 go
 Create Table  AccountCategoryChangeExtract  (
-  MemberExternalReference              nvarchar(256)        Not Null
+  ID                                   int identity         Not Null
+, MemberExternalReference              nvarchar(256)        Not Null
 , AccountExternalReference             nvarchar(256)        Not Null
 , Category                             nvarchar(256)        Not Null
 , StartDate                            date                 Not Null
 , EndDate                              date                 
+  CONSTRAINT [PK_AccountCategoryChangeExtract]
+	PRIMARY KEY CLUSTERED ( "ID" ASC )
 )go
 
 IF Object_id('[dbo].NoteExtract', 'U') IS NOT NULL 
@@ -528,11 +552,14 @@ IF Object_id('[dbo].ConditionOfReleaseExtract', 'U') IS NOT NULL
 	DROP TABLE [dbo].ConditionOfReleaseExtract
 go
 Create Table  ConditionOfReleaseExtract  (
-  AccountExternalReference             nvarchar(256)        Not Null
+  Id                                   int identity         Not Null
+, AccountExternalReference             nvarchar(256)        Not Null
 , TypeId                               int                  Not Null
 CONSTRAINT [CHK_ConditionOfReleaseExtract_TypeId]
 	CHECK ( TypeId between 1 and 5 ) --1 = Retirement, 2 = CeasedEmploymentAged60AndAbove, 3 = TPD, 4 = TI/Death, 5 = PPD
 , ReleaseDate                          date                 Not Null
+  CONSTRAINT [PK_ConditionOfReleaseExtract]
+	PRIMARY KEY CLUSTERED ( Id ASC )
 )go
 
 IF Object_id('[dbo].DocumentExtract', 'U') IS NOT NULL 
@@ -542,11 +569,14 @@ Create Table  DocumentExtract  (
   DocumentId                           int                  Not Null
 , OwnerExternalReference               nvarchar(256)        Not Null
 , AccountExternalReference             nvarchar(256)        
+, CreatedDatetime                      datetime             Not Null
 , Subject                              nvarchar(256)        Not Null
 , Source                               int                  Not Null
 CONSTRAINT [CHK_DocumentExtract_Source]
 	CHECK ( Source between 1 and 3 ) --1 = Outgoing, 2 = Incoming, 3 = Internal
-, VisibilityId                         int                  Not Null
+, ArtefactTypeId                       int                  Not Null	default 3
+, ContentTypeId                        int                  Not Null
+, VisibilityId                         int                  Not Null	default 10000000
 CONSTRAINT [CHK_DocumentExtract_VisibilityId]
 	CHECK ( VisibilityId in (1000, 10000, 10000000) ) --10000000 = Admins only, 10000 = Visible to member, 1000 = Visible to service provider but not member
 , StatusId                             int                  Not Null
@@ -619,7 +649,7 @@ CONSTRAINT [CHK_DocumentContentExtract_ContentTypeId]
 	CHECK ( ContentTypeId between 1 and 13) -- See Document
 , Filename                             nvarchar(256)        Not Null
   CONSTRAINT [PK_DocumentContentExtract]
-	PRIMARY KEY CLUSTERED ( "DocumentId" ASC )
+	PRIMARY KEY CLUSTERED ( DocumentId ASC )
 )go
 
 IF Object_id('[dbo].SuperFundExtract', 'U') IS NOT NULL 
@@ -627,7 +657,7 @@ IF Object_id('[dbo].SuperFundExtract', 'U') IS NOT NULL
 go
 Create Table  SuperFundExtract  (
   AustralianBusinessNumber             nvarchar(64)         Not Null
-, Name                                 nvarchar(64)         Not Null
+, Name                                 nvarchar(128)        Not Null
 , TaxFileNumber                        varchar(32)          
 , EstablishmentDate                    date                 Not Null
 , WindUpDate                           date                 
@@ -642,7 +672,7 @@ go
 Create Table  SuperFundProductExtract  (
   AustralianBusinessNumber             nvarchar(64)         Not Null
 , Usi                                  varchar(50)          Not Null
-, ProductName                          nvarchar(64)         Not Null
+, ProductName                          nvarchar(128)        Not Null
 , ContributionBankAccountBSB           nvarchar(64)         
 , ContributionBankAccountNumber        nvarchar(32)         
 , RolloverBankAccountBSB               nvarchar(64)         
